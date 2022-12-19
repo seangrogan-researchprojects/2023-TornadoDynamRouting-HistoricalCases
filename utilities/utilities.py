@@ -49,6 +49,10 @@ def datetime_string(_dt=datetime.datetime.now().strftime('%Y%m%d_%H%M%S'), curre
     return _dt
 
 
+def flatten_a_list(input_list):
+    return [item for sublist in input_list for item in sublist]
+
+
 def inject_datetime_str(file_path):
     filename, file_extension = os.path.splitext(file_path)
     return f"{filename}_{datetime_string()}{file_extension}"
