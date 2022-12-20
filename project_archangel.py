@@ -85,7 +85,7 @@ def get_events_by_date(pars, damage_polygons, sbws, dates):
                     ids_to_drop.append(_id)
                 else:
                     split_tornadoes[_id] = polygon
-            event['damage'] = event['damage'].drop(labels=ids_to_drop, axis=0)
+            events_by_date[date]['damage'] = event['damage'].drop(labels=ids_to_drop, axis=0)
         # write_pickle(pickle_file, events_by_date)
     return events_by_date
 
