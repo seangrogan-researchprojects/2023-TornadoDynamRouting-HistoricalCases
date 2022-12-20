@@ -2,7 +2,6 @@ from multiprocessing import Process
 
 import matplotlib.pyplot as plt
 from shapely.geometry import MultiPolygon
-from shapely.ops import cascaded_union
 
 from utilities.utilities import automkdir, euclidean, datetime_string
 

@@ -15,29 +15,25 @@ def project_archangel(parfile):
     pars = parfile_reader(parfile)
     sbws, damage_polygons, dates = get_historical_cases_data(pars)
     events_by_date = get_events_by_date(pars, damage_polygons, sbws, dates)
+    make_minimum_cases(dates, events_by_date, pars)
 
+def make_minimum_cases(dates, events_by_date, pars):
     for date in dates:
         print(f"Plotting Information")
         event_data = events_by_date[date]
         output_loc = f"{pars['shapefile_by_date_location']}/{date}"
         automkdir(f"{output_loc}/sbws_{date}.gpkg")
 
-        event_data['sbws'].select_dtypes(exclude=[datetime.datetime, datetime.date]).to_file(
-            f"{output_loc}/sbws_{date}.gpkg", layer='sbws', driver="GPKG")
-        event_data['damage'].select_dtypes(exclude=[datetime.datetime, datetime.date]).to_file(
-            f"{output_loc}/dmgs_{date}.gpkg", layer='damage', driver="GPKG")
         plot_with_polygon_case(sbw=event_data['sbws'].geometry.to_list(),
                                damage_poly=event_data['damage'].geometry.to_list(),
                                show=False, title=f"{date} | {len(event_data['sbws'])}",
-                               path=f"{pars['shapefile_by_date_location']}/{date}.png")
-        plot_with_polygon_case(sbw=event_data['sbws'].geometry.to_list(),
-                               damage_poly=event_data['damage'].geometry.to_list(),
-                               show=False, title=f"{date} | {len(event_data['sbws'])}", path=f"{output_loc}/{date}.png")
+                               path=f"./plots/{date}.png")
         make_smaller_events(pars, date, event_data)
 
 
 def make_smaller_events(pars, date, event_data):
     output_loc = f"./separated_plots/"
+    cases = []
     for tor_id, tornado in enumerate(event_data['damage'].geometry):
         data = []
         sbws_to_keep = []
@@ -50,13 +46,31 @@ def make_smaller_events(pars, date, event_data):
         idx_to_keep = sorted(sorted(data, key=lambda x: x[3]), key=lambda x: x[2], reverse=True)[0][0]
         sbws_to_keep.append(event_data['sbws'].loc[[idx_to_keep]])
         sbws_to_keep = pd.concat(sbws_to_keep)
-        plot_with_polygon_case(sbw=sbws_to_keep.geometry.to_list(),
-                           damage_poly=tornado,
-                           show=False,
-                           title=f"{date} | {tor_id} | {idx_to_keep}",
-                           path=f"{output_loc}/{date}_{tor_id}.png")
-
-    # return event_data
+        assert len(sbws_to_keep.geometry.to_list()) == 1
+        cases.append((tornado, sbws_to_keep.geometry.to_list()[0], tor_id))
+    tornado, sbw, tor_id = cases.pop(0)
+    data_to_return = [[[tornado], [sbw], [tor_id]]]
+    while len(cases) >0:
+        update = False
+        tornado, sbw, tor_id = cases.pop(0)
+        for idx, (t, s, i) in enumerate(data_to_return):
+            if any(sbw.intersection(other).area > 0 for other in s):
+                t.append(tornado)
+                s.append(sbw)
+                i.append(tor_id)
+                update = True
+                break
+        if not update:
+            data_to_return += [[[tornado], [sbw], [tor_id]]]
+    for data in data_to_return:
+        tornadoes, sbws, tor_ids = data
+        tor_id = ":".join(str(t) for t in tor_ids)
+        plot_with_polygon_case(sbw=sbws,
+                               damage_poly=tornadoes,
+                               show=False,
+                               title=f"{date} | {tor_id}",
+                               path=f"./plots_separated_v2/{date}_{tor_id.replace(':', '-')}.png")
+    return data_to_return
 
 
 def get_events_by_date(pars, damage_polygons, sbws, dates):
@@ -74,7 +88,8 @@ def get_events_by_date(pars, damage_polygons, sbws, dates):
         for date, event in events_by_date.items():
             dmg_polys = event['damage'].geometry
             indicies_to_asses = dmg_polys.index
-            damages_to_asses = sorted([(i, j.geometry) for i, j in event['damage'].iterrows()], key=lambda k: k[1].area, reverse=True)
+            damages_to_asses = sorted([(i, j.geometry) for i, j in event['damage'].iterrows()], key=lambda k: k[1].area,
+                                      reverse=True)
             split_tornadoes = dict()
             _id, polygon = damages_to_asses.pop(0)
             split_tornadoes[_id] = polygon
@@ -86,7 +101,7 @@ def get_events_by_date(pars, damage_polygons, sbws, dates):
                 else:
                     split_tornadoes[_id] = polygon
             events_by_date[date]['damage'] = event['damage'].drop(labels=ids_to_drop, axis=0)
-        # write_pickle(pickle_file, events_by_date)
+        write_pickle(pickle_file, events_by_date)
     return events_by_date
 
 
