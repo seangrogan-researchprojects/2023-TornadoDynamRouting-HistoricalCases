@@ -179,7 +179,7 @@ def plot_route(route, path, lasts=None):
 
 
 def plot_route_and_wp_scores(waypoints_data, route_as_visited=None, route_to_visit=None,
-                             show=False, title=None, path=None
+                             show=False, title=None, path=None, damage_poly=None
                              , sbw=None, bounds=None):
     COLOR_PARAMS = dict(
         route_as_visited_color="red",
@@ -206,6 +206,23 @@ def plot_route_and_wp_scores(waypoints_data, route_as_visited=None, route_to_vis
         ax.plot(x, y, c=COLOR_PARAMS["route_as_visited_color"])
         x, y = route_as_visited[-1]
         ax.scatter(x, y, c=COLOR_PARAMS["route_as_visited_color"], marker="2")
+    if damage_poly:
+        if isinstance(damage_poly, list):
+            for dp in damage_poly:
+                if isinstance(dp, MultiPolygon):
+                    for dp2 in list(dp.geoms):
+                        x, y = dp2.exterior.xy
+                        plt.plot(x, y, color='gold')
+                else:
+                    x, y = dp.exterior.xy
+                    plt.plot(x, y, color='gold')
+        elif isinstance(damage_poly, MultiPolygon):
+            for dp2 in list(damage_poly.geoms):
+                x, y = dp2.exterior.xy
+                plt.plot(x, y, color='gold')
+        else:
+            x, y = damage_poly.exterior.xy
+            plt.plot(x, y, color='gold')
     if sbw:
         if isinstance(sbw, list):
             for s in sbw:

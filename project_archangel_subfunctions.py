@@ -11,11 +11,26 @@ from tqdm import tqdm, trange
 
 from utilities.file_io import read_sbw_file, read_geo_files_into_geopandas, get_points_file, read_json, write_json
 from utilities.pickles_io import read_pickle, write_pickle
-from utilities.plotter_utilities import plot_with_polygon_case
+from utilities.plotter_utilities import plot_with_polygon_case, plot_route_and_wp_scores
 from utilities.utilities import flatten_a_list, automkdir
 from waypoint_creators.waypoint_creators import create_waypoints
 
 
+def plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table):
+    bounds = get_bounds(damage, sbws)
+    plot_with_polygon_case(waypoints=waypoints,
+                           sbw=sbws,
+                           damage_poly=damage,
+                           bounds=bounds,
+                           show=False, title=f"{date} | {sub_event_id}",
+                           path=f"./plots/plots_case_data/{date}_{sub_event_id.replace(':', '-')}.png")
+    plot_route_and_wp_scores(
+        waypoint_data_table, route_as_visited=None, route_to_visit=None, damage_poly=damage,
+        show=False,
+        title=f"{date} | {sub_event_id}",
+        path=f"./plots/plots_waypoints_data/{date}_{sub_event_id.replace(':', '-')}.png",
+        sbw=sbws, bounds=bounds
+    )
 def get_historical_cases_data(pars):
     pickle_file = f"{pars['pickle_base']}/historical_data_pickle.pickle"
     data = read_pickle(pickle_file)
@@ -236,6 +251,12 @@ def create_waypoints_data_tables(pars, waypoints, sbws, damage, date):
             waypoint_data_table = create_waypoints_data_table_mp(waypoints, damage, sbws, pars['r_scan'], pars)
     return waypoint_data_table
 
+def get_bounds(damage, sbws):
+    polys = damage + sbws
+    bound_data = [p.bounds for p in polys]
+    minx, miny, maxx, maxy = zip(*bound_data)
+    lb_x, ub_x, lb_y, ub_y = min(minx), max(maxx), min(miny), max(maxy)
+    return [lb_x, ub_x, lb_y, ub_y]
 
 def create_waypoints_data_table_mp(waypoints, damage, sbws, r_scan, pars, bin_width=1000):
     with concurrent.futures.ProcessPoolExecutor() as ppe:

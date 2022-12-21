@@ -12,7 +12,7 @@ from tqdm import tqdm, trange
 
 from pars.parfile_reader import parfile_reader
 from project_archangel_subfunctions import get_historical_cases_data, get_events_by_date, make_minimum_cases, \
-    make_pois_by_date, get_waypoints, create_waypoints_data_tables
+    make_pois_by_date, get_waypoints, create_waypoints_data_tables, get_bounds, plot_stuff
 from utilities.pickles_io import read_pickle, write_pickle
 from utilities.plotter_utilities import plot_with_polygon_case, plot_route_and_wp_scores
 from utilities.utilities import automkdir, datetime_string
@@ -35,42 +35,23 @@ def project_archangel(parfile):
             poi = pois_by_date[date]
             dynamic_routing(pars, date, key, sub_event, poi)
             t_sec = time.time() - start_t
-            log_results(log_file_path, pars, date, key, t_sec)
+            log_results(log_file_path, pars, date, key, t_sec, len(sub_event['damage']))
 
 
 def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
     sbws, damage = sub_event['sbws'], sub_event['damage']
     waypoints = get_waypoints(pars, date, poi)
     waypoint_data_table = create_waypoints_data_tables(pars, waypoints, sbws, damage, date)
-    bounds = get_bounds(damage, sbws)
-    plot_with_polygon_case(waypoints=waypoints,
-                           sbw=sbws,
-                           damage_poly=damage,
-                           bounds=bounds,
-                           show=False, title=f"{date} | {sub_event_id}",
-                           path=f"./plots/plots_case_data/{date}_{sub_event_id}.png")
-    plot_route_and_wp_scores(
-        waypoint_data_table, route_as_visited=None, route_to_visit=None,
-        show=False,
-        title=f"{date} | {sub_event_id}",
-        path=f"./plots/plots_waypoints_data/{date}_{sub_event_id}.png",
-        sbw=sbws, bounds=bounds
-    )
+    plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table)
     return 0
 
-def get_bounds(damage, sbws):
-    polys = damage+sbws
-    bound_data = [p.bounds for p in polys]
-    minx, miny, maxx, maxy = zip(*bound_data)
-    lb_x, ub_x, lb_y, ub_y = min(minx), max(maxx), min(miny), max(maxy)
-    return [lb_x, ub_x, lb_y, ub_y]
 
-
-def log_results(log_file_path, pars, date, sub_event, t_sec):
+def log_results(log_file_path, pars, date, sub_event, t_sec, n_damage_polys):
     data = [
         ("date", str(date)),
         ("sub_event", str(sub_event)),
         ("t_sec", str(t_sec)),
+        ("n_damage_polys", n_damage_polys)
     ]
 
     data += list(pars.items())
