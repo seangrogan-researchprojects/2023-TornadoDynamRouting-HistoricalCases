@@ -5,5 +5,12 @@
   "crs": "ESRI:102039",
   "points_file": "G:/project-archangel-spatial-data/Less_Points_102039.gpkg",
   "pickle_base": "G:/ARCHANGEL-2-PICKLES/",
-  "shapefile_by_date_location": "G:/ARCHANGEL-2-SHAPEFILES-BY-DATE/"
+  "shapefile_by_date_location": "G:/ARCHANGEL-2-SHAPEFILES-BY-DATE/",
+  "r_scan" : 1000,
+  "waypoint_method" : "auto",
+  "score_near_sbw" : 0.25,
+  "score_in_sbw": 0.5,
+  "score_out_sbw": 0,
+  "score_damaged": 10,
+  "near_sbw_scale" : 1.2
 }

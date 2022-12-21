@@ -119,7 +119,7 @@ def plot_with_polygon_case(waypoints=None, sbw=None, sbw_verts=None,
                 if isinstance(s, MultiPolygon):
                     for s2 in list(s.geoms):
                         x, y = s2.exterior.xy
-                        plt.plot(x, y, color='gold')
+                        plt.plot(x, y, color='red')
                 else:
                     x, y = s.exterior.xy
                     plt.plot(x, y, color='red')
@@ -180,7 +180,7 @@ def plot_route(route, path, lasts=None):
 
 def plot_route_and_wp_scores(waypoints_data, route_as_visited=None, route_to_visit=None,
                              show=False, title=None, path=None
-                             ):
+                             , sbw=None, bounds=None):
     COLOR_PARAMS = dict(
         route_as_visited_color="red",
         route_to_visit_color="fuchsia",
@@ -191,7 +191,10 @@ def plot_route_and_wp_scores(waypoints_data, route_as_visited=None, route_to_vis
     wpts_x, wpts_y, wpts_score = \
         waypoints_data["_wp_x"].to_list(), waypoints_data["_wp_y"].to_list(), waypoints_data["score"].to_list()
     ax.scatter(wpts_x, wpts_y, c=wpts_score, cmap=COLOR_PARAMS["scores"], vmin=0, vmax=1)
-
+    if bounds:
+        lb_x, ub_x, lb_y, ub_y = bounds
+        plt.xlim(lb_x, ub_x)
+        plt.ylim(lb_y, ub_y)
     if route_to_visit:
         to_plt = [route_as_visited[-1]] + route_to_visit[:]
         x, y = zip(*to_plt[:])
@@ -203,6 +206,19 @@ def plot_route_and_wp_scores(waypoints_data, route_as_visited=None, route_to_vis
         ax.plot(x, y, c=COLOR_PARAMS["route_as_visited_color"])
         x, y = route_as_visited[-1]
         ax.scatter(x, y, c=COLOR_PARAMS["route_as_visited_color"], marker="2")
+    if sbw:
+        if isinstance(sbw, list):
+            for s in sbw:
+                if isinstance(s, MultiPolygon):
+                    for s2 in list(s.geoms):
+                        x, y = s2.exterior.xy
+                        plt.plot(x, y, color='red')
+                else:
+                    x, y = s.exterior.xy
+                    plt.plot(x, y, color='red')
+        else:
+            x, y = sbw.exterior.xy
+            plt.plot(x, y, color='red')
     if path:
         automkdir(path)
         global GLOBAL_OVERRIDES

@@ -5,12 +5,15 @@ from time import strptime
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+from shapely import affinity
 from shapely.geometry import Polygon, Point
 from tqdm import tqdm, trange
 
 from utilities.file_io import read_sbw_file, read_geo_files_into_geopandas, get_points_file, read_json, write_json
 from utilities.pickles_io import read_pickle, write_pickle
-from utilities.utilities import flatten_a_list
+from utilities.plotter_utilities import plot_with_polygon_case
+from utilities.utilities import flatten_a_list, automkdir
+from waypoint_creators.waypoint_creators import create_waypoints
 
 
 def get_historical_cases_data(pars):
@@ -98,86 +101,6 @@ def collate_events(sbws, damage_polygons):
     return _sbw_cases, _tor_cases, _dates
 
 
-def create_waypoints_data_tables(base_pars, dynamic_pars, damage, sbws, date, *args, **kwargs):
-    print("\n")
-    print(f"Working on Waypoint Data Table for {date}")
-    waypoints = list(set(flatten_a_list(sbws.waypoints.to_list())))
-    waypoints_data_table = read_pickle(f"./pickles/waypoints_data_table/{date}.pickle")
-    if waypoints_data_table is None:
-        if len(waypoints) < 1_000:
-            waypoints_data_table = create_waypoints_data_table(waypoints,
-                                                               damage, sbws, base_pars["r_scan"],
-                                                               dynamic_pars["default_score"])
-        else:
-            print(f"Using Multiprocessing!")
-            print(f"N_Wpts {len(waypoints)}")
-            waypoints_data_table = create_waypoints_data_table_mp(waypoints, damage, sbws, base_pars["r_scan"],
-                                                                  dynamic_pars["default_score"])
-        write_pickle(f"./pickles/waypoints_data_table/{date}.pickle", waypoints_data_table)
-    print(f"Completed {date}!")
-    return waypoints_data_table, waypoints
-
-
-def create_waypoints_data_table_mp(waypoints, damage, sbws, r_scan, default_score, bin_width=100):
-    with concurrent.futures.ProcessPoolExecutor() as ppe:
-        waypoint_bins = [waypoints[x:x + bin_width] for x in trange(0, len(waypoints), bin_width,
-                                                                    desc=f"Separating into {str(1 + len(waypoints) // bin_width)}")]
-        print(f"N_Bins {len(waypoint_bins)}")
-        cases = [dict(waypoints=waypoint_bin,
-                      damage=damage,
-                      sbws=sbws,
-                      r_scan=r_scan,
-                      default_score=default_score,
-                      k=k + 1,
-                      total=len(waypoint_bins)) for k, waypoint_bin in
-                 enumerate(tqdm(waypoint_bins, desc="Submitting"))]
-        results = [ppe.submit(create_waypoints_data_table_wrapper, kwargs=case) for case in cases]
-        data = []
-        for f in tqdm(concurrent.futures.as_completed(results), desc="Getting MP Results"):
-            data.append(f.result())
-    return pd.concat(data)
-
-
-def create_waypoints_data_table_wrapper(args=None, kwargs=None):
-    if args and not kwargs:
-        return create_waypoints_data_table(*args)
-    elif not args and kwargs:
-        return create_waypoints_data_table(**kwargs)
-    else:
-        return create_waypoints_data_table(*args, **kwargs)
-
-
-def create_waypoints_data_table(waypoints, damage, sbws, r_scan, default_score, k=None, total=None):
-    def is_inside(_point, _geoms, _r_scan):
-        if isinstance(_geoms, gpd.GeoDataFrame) or isinstance(_geoms, pd.DataFrame):
-            _geoms = _geoms.geometry.to_list()
-        if isinstance(_geoms, Polygon):
-            _geoms = [_geoms]
-        return any(geom.contains(Point(_point[0], _point[1])) for geom in _geoms) or any(
-            geom.distance(Point(_point[0], _point[1])) <= _r_scan for geom in _geoms)
-
-    total_data = ""
-    if total is not None:
-        total_data = f" {k: >{len(str(total))}}/{total}"
-    elif k is not None:
-        total_data = f" {k}"
-    data = {
-        waypoint: {
-            "damaged": is_inside(waypoint, damage, r_scan),
-            "in_sbw": is_inside(waypoint, sbws, r_scan),
-            "score": default_score * is_inside(waypoint, sbws, r_scan),
-            "base_score": default_score * is_inside(waypoint, sbws, r_scan),
-            "group_score": default_score * is_inside(waypoint, sbws, r_scan),
-            "visited": False,
-            "_wp": waypoint,
-            "_wp_x": waypoint[0],
-            "_wp_y": waypoint[1],
-        }
-        for waypoint in tqdm(waypoints, desc=f"Generating Waypoint Data Table{total_data}")
-    }
-    return pd.DataFrame(data).transpose()
-
-
 def read_write_dates_completed_file(file=None, data=None):
     if file is None:
         file = "./datafiles/dates_completed.json"
@@ -192,6 +115,17 @@ def read_write_dates_completed_file(file=None, data=None):
     else:
         data = [ele.strftime('%Y-%m-%d') for ele in data]
         write_json(file, data)
+
+
+def make_pois_by_date(dates, sbws, pars):
+    pickle_file = f"{pars['pickle_base']}/pois_by_date.pickle"
+    pois_by_date = read_pickle(pickle_file)
+    if pois_by_date is not None:
+        return pois_by_date
+    pois_by_date = {date: list(set(flatten_a_list(sbws[sbws.event_date == date].waypoints.to_list()))) for date in
+                    tqdm(dates)}
+    write_pickle(pickle_file, pois_by_date)
+    return pois_by_date
 
 
 def make_minimum_cases(dates, events_by_date, pars):
@@ -290,3 +224,98 @@ def get_events_by_date(pars, damage_polygons, sbws, dates):
             events_by_date[date]['damage'] = event['damage'].drop(labels=ids_to_drop, axis=0)
         write_pickle(pickle_file, events_by_date)
     return events_by_date
+
+
+def create_waypoints_data_tables(pars, waypoints, sbws, damage, date):
+    pickle_file = f"{pars['pickle_base']}/waypoints_data_tables/{pars['waypoint_method']}_{pars['r_scan']}/{date}_{pars['waypoint_method']}_{pars['r_scan']}.pickle"
+    waypoint_data_table = read_pickle(pickle_file)
+    if waypoint_data_table is None:
+        if len(waypoints) < 1000:
+            waypoint_data_table = create_waypoints_data_table(waypoints, damage, sbws, pars['r_scan'], pars)
+        else:
+            waypoint_data_table = create_waypoints_data_table_mp(waypoints, damage, sbws, pars['r_scan'], pars)
+    return waypoint_data_table
+
+
+def create_waypoints_data_table_mp(waypoints, damage, sbws, r_scan, pars, bin_width=1000):
+    with concurrent.futures.ProcessPoolExecutor() as ppe:
+        waypoint_bins = [waypoints[x:x + bin_width] for x in trange(0, len(waypoints), bin_width,
+                                                                    desc=f"Separating into {str(1 + len(waypoints) // bin_width)}")]
+        print(f"N_Bins {len(waypoint_bins)}")
+        cases = [dict(waypoints=waypoint_bin,
+                      damage=damage,
+                      sbws=sbws,
+                      r_scan=r_scan,
+                      k=k + 1,
+                      pars=pars,
+                      total=len(waypoint_bins)) for k, waypoint_bin in
+                 enumerate(tqdm(waypoint_bins, desc="Submitting"))]
+        results = [ppe.submit(create_waypoints_data_table_wrapper, kwargs=case) for case in cases]
+        data = []
+        for f in tqdm(concurrent.futures.as_completed(results), desc="Getting MP Results"):
+            data.append(f.result())
+    return pd.concat(data)
+
+
+def create_waypoints_data_table_wrapper(args=None, kwargs=None):
+    if args and not kwargs:
+        return create_waypoints_data_table(*args)
+    elif not args and kwargs:
+        return create_waypoints_data_table(**kwargs)
+    else:
+        return create_waypoints_data_table(*args, **kwargs)
+
+
+def create_waypoints_data_table(waypoints, damage, sbws, r_scan, pars, k=None, total=None):
+    def is_inside(_point, _geoms, _r_scan):
+        if isinstance(_geoms, gpd.GeoDataFrame) or isinstance(_geoms, pd.DataFrame):
+            _geoms = _geoms.geometry.to_list()
+        if isinstance(_geoms, Polygon):
+            _geoms = [_geoms]
+        return any(geom.contains(Point(_point[0], _point[1])) for geom in _geoms) or \
+               any(geom.distance(Point(_point[0], _point[1])) <= _r_scan for geom in _geoms)
+
+    def is_nearby(_point, _geoms, _scale, _r_scan=0):
+        if _scale is None:
+            return 0
+        if isinstance(_geoms, gpd.GeoDataFrame) or isinstance(_geoms, pd.DataFrame):
+            _geoms = _geoms.geometry.to_list()
+        if isinstance(_geoms, Polygon):
+            _geoms = [_geoms]
+        scaled_geoms = [affinity.scale(_geom, xfact=_scale, yfact=_scale) for _geom in _geoms]
+        return is_inside(_point, scaled_geoms, _r_scan)
+
+    total_data = ""
+    near_sbw_score = pars["score_near_sbw"]
+    default_score = pars["score_in_sbw"]
+    if total is not None:
+        total_data = f" {k: >{len(str(total))}}/{total}"
+    elif k is not None:
+        total_data = f" {k}"
+    data = {
+        waypoint: {
+            "damaged": is_inside(waypoint, damage, r_scan),
+            "in_sbw": is_inside(waypoint, sbws, r_scan),
+            "score": max(default_score * is_inside(waypoint, sbws, r_scan),
+                         near_sbw_score * is_nearby(waypoint, sbws, pars["near_sbw_scale"])),
+            "base_score": max(default_score * is_inside(waypoint, sbws, r_scan),
+                              near_sbw_score * is_nearby(waypoint, sbws, pars["near_sbw_scale"])),
+            "group_score": default_score * is_inside(waypoint, sbws, r_scan),
+            "visited": False,
+            "_wp": waypoint,
+            "_wp_x": waypoint[0],
+            "_wp_y": waypoint[1],
+        }
+        for waypoint in tqdm(waypoints, desc=f"Generating Waypoint Data Table{total_data}")
+    }
+    return pd.DataFrame(data).transpose()
+
+
+def get_waypoints(pars, date, poi):
+    pickle_file = f"{pars['pickle_base']}/waypoints_data/{pars['waypoint_method']}_{pars['r_scan']}/{date}_{pars['waypoint_method']}_{pars['r_scan']}.pickle"
+    waypoints = read_pickle(pickle_file)
+    if waypoints is None:
+        waypoints = create_waypoints(pars, poi, pars['r_scan'], pars['waypoint_method'])
+        waypoints = list(waypoints)
+        write_pickle(pickle_file, waypoints)
+    return waypoints

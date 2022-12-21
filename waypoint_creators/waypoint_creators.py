@@ -3,13 +3,23 @@ import math
 from tqdm import tqdm
 
 from utilities.utilities import my_round
+from waypoint_creators.random_steiner_zone import random_steiner_zone
 
 
 def create_waypoints(pars, poi, r_scan, method):
-    if method in {'rec', 'rectangle', 'rectangular'}:
+    if method in {'auto'}:
+        methods = ['rec', 'hex']
+        data = []
+        for m in methods:
+            data.append((m, create_waypoints(pars, poi, r_scan, m)))
+        data.sort(key=lambda x: len(x[1]))
+        return data[0][1]
+    elif method in {'rec', 'rectangle', 'rectangular'}:
         waypoints = rectangular(pars, poi, r_scan)
     elif method in {'hex', 'hexagonal', 'hexagon'}:
         waypoints = hexagon_pattern(pars, poi, r_scan)
+    elif method in {'random_steiner', 'rsz'}:
+        waypoints = random_steiner_zone(poi, pars, False)
     else:
         raise NotImplementedError(f"Method {method} not implemented")
     return waypoints
