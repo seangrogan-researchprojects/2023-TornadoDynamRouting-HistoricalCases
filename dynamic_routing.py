@@ -71,7 +71,7 @@ def perform_dynamic_routing(waypoints_data, pars):
         waypoints_data.at[next_waypoint, "visited"] = True
         if waypoints_data.loc[[next_waypoint]].damaged.bool():
             waypoints_data.at[next_waypoint, 'score'] = 1
-            waypoints_data.at[next_waypoint, 'base_score'] = pars["base_scores"]["visited"]["damaged"]
+            waypoints_data.at[next_waypoint, 'base_score'] = pars["score_damaged"]
             short_memory.append(True)
             long_memory.append(True)
             all_memory.append(True)
@@ -81,7 +81,7 @@ def perform_dynamic_routing(waypoints_data, pars):
                 influence_matrix_to_use = "symmetric"
         else:
             waypoints_data.at[next_waypoint, 'score'] = 0
-            waypoints_data.at[next_waypoint, 'base_score'] = pars["base_scores"]["visited"]["undamaged"]
+            waypoints_data.at[next_waypoint, 'base_score'] = pars["score_undamaged"]
             short_memory.append(False)
             long_memory.append(False)
             all_memory.append(False)

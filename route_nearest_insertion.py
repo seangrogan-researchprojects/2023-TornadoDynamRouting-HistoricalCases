@@ -48,7 +48,7 @@ def route_nearest_insertion(waypoints, start_min_arc=True, start_at=None, unknot
                             kounter_limit="auto"):
     if kounter_limit is None:
         kounter_limit = float('inf')
-    if kounter_limit is 'auto':
+    if kounter_limit == 'auto':
         kounter_limit = len(waypoints) * len(waypoints) // 4
     idx_start_at = None
     if start_at is not None:

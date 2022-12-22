@@ -14,7 +14,7 @@
   "score_damaged": 10,
   "score_undamaged": 0,
   "near_sbw_scale" : 1.2,
-  "influence_matrix_type": "symmetric",
+  "influence_matrix_type": "data-driven",
   "routing_mode": "order_scores",
   "max_influence": 10000,
   "min_influence": 0,
