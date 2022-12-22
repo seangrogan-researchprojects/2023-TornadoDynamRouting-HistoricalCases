@@ -1,22 +1,14 @@
-import concurrent.futures
 import csv
-import datetime
 import os
 import time
 import socket
 
-import pandas as pd
-import geopandas as gpd
-from shapely import Polygon, affinity, Point
-from tqdm import tqdm, trange
-
+from dynamic_routing import perform_dynamic_routing
 from pars.parfile_reader import parfile_reader
 from project_archangel_subfunctions import get_historical_cases_data, get_events_by_date, make_minimum_cases, \
-    make_pois_by_date, get_waypoints, create_waypoints_data_tables, get_bounds, plot_stuff
-from utilities.pickles_io import read_pickle, write_pickle
-from utilities.plotter_utilities import plot_with_polygon_case, plot_route_and_wp_scores
-from utilities.utilities import automkdir, datetime_string
-from waypoint_creators.waypoint_creators import create_waypoints
+    make_pois_by_date, get_waypoints, create_waypoints_data_tables, plot_stuff
+from route_nearest_insertion import route_nearest_insertion
+from utilities.utilities import automkdir, datetime_string, euclidean
 
 
 def project_archangel(parfile):
@@ -33,9 +25,16 @@ def project_archangel(parfile):
             start_t = time.time()
             print(f"Working On Sub-Event {date} - {key}")
             poi = pois_by_date[date]
-            dynamic_routing(pars, date, key, sub_event, poi)
+            route_as_visited, all_memory, n_missed_waypoints, \
+            dist_init, minimum_hamiltonian_path, minimum_hamiltonian_path_distance = \
+                dynamic_routing(pars, date, key, sub_event, poi)
             t_sec = time.time() - start_t
-            log_results(log_file_path, pars, date, key, t_sec, len(sub_event['damage']))
+            log_results(
+                log_file_path, pars, date, key, t_sec, len(sub_event['damage']),
+                route_as_visited, all_memory, n_missed_waypoints,
+                dist_init, minimum_hamiltonian_path,
+                minimum_hamiltonian_path_distance
+            )
 
 
 def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
@@ -43,15 +42,67 @@ def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
     waypoints = get_waypoints(pars, date, poi)
     waypoint_data_table = create_waypoints_data_tables(pars, waypoints, sbws, damage, date)
     plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table)
-    return 0
+    route_as_visited, all_memory, n_missed_waypoints, dist_init = \
+        perform_dynamic_routing(waypoint_data_table, pars)
+
+    waypoints_to_route = waypoint_data_table[waypoint_data_table["damaged"] == True]["_wp"].to_list()
+    minimum_hamiltonian_path, minimum_hamiltonian_path_distance = \
+        route_nearest_insertion(waypoints_to_route, start_min_arc=False, unknot=True)
+
+    return route_as_visited, all_memory, n_missed_waypoints, dist_init, minimum_hamiltonian_path, minimum_hamiltonian_path_distance
 
 
-def log_results(log_file_path, pars, date, sub_event, t_sec, n_damage_polys):
+def log_results(log_file_path, pars, date, sub_event, t_sec, n_damage_polys,
+                route_as_visited, all_memory, n_missed_waypoints,
+                dist_init, minimum_hamiltonian_path,
+                minimum_hamiltonian_path_distance
+                ):
+    dist_of_traveled_route = sum(euclidean(p1, p2)
+                                 for p1, p2 in
+                                 zip(route_as_visited, route_as_visited[1:]))
+    dist_last_damage, dist_first_damage, dist_last_damage, dist_first_damage, wpt_num_last_damage, wpt_num_first_damage = 0
+    if any(all_memory):
+        for i, (p1, dmg) in enumerate(zip(route_as_visited, all_memory)):
+            if dmg:
+                wpt_num_first_damage = i
+                dist_first_damage = sum(euclidean(p1, p2)
+                                        for p1, p2 in
+                                        zip(route_as_visited[:i], route_as_visited[1:]))
+                break
+        for i, (p1, dmg) in enumerate(zip(route_as_visited, all_memory)):
+            if dmg:
+                wpt_num_last_damage = i
+                dist_last_damage = sum(euclidean(p1, p2)
+                                       for p1, p2 in
+                                       zip(route_as_visited[:i], route_as_visited[1:]))
+    n_damaged = sum(all_memory) + n_missed_waypoints
+    if dist_last_damage is None or dist_first_damage is None:
+        delta_dist, delta_wpt = None, None
+        score_as_dist, score_as_wp = None, None
+    else:
+        delta_dist = dist_last_damage - dist_first_damage
+        delta_wpt = wpt_num_last_damage - wpt_num_first_damage
+        score_as_dist = delta_dist / minimum_hamiltonian_path_distance
+        score_as_wp = delta_wpt / n_damaged
     data = [
+        ("current_datetime", datetime_string(current=True)),
         ("date", str(date)),
         ("sub_event", str(sub_event)),
         ("t_sec", str(t_sec)),
-        ("n_damage_polys", n_damage_polys)
+        ("n_damage_polys", n_damage_polys),
+        ("wpt_num_first_damage", wpt_num_first_damage),
+        ("dist_first_damage", dist_first_damage),
+        ("wpt_num_last_damage", wpt_num_last_damage),
+        ("dist_last_damage", dist_last_damage),
+        ("delta_dist", delta_dist),
+        ("delta_wpt", delta_wpt),
+        ("minimum_hamiltonian_path_distance", minimum_hamiltonian_path_distance),
+        ("n_damaged", n_damaged),
+        ("score_as_dist", score_as_dist),
+        ("score_as_wp", score_as_wp),
+        ("dist_init", dist_init),
+        ("dist_of_traveled_route", dist_of_traveled_route),
+        ("n_missed_waypoints", n_missed_waypoints)
     ]
 
     data += list(pars.items())

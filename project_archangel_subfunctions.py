@@ -16,16 +16,18 @@ from utilities.utilities import flatten_a_list, automkdir
 from waypoint_creators.waypoint_creators import create_waypoints
 
 
-def plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table):
+def plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table, route_as_visited=None):
     bounds = get_bounds(damage, sbws)
     plot_with_polygon_case(waypoints=waypoints,
+                           route=route_as_visited,
                            sbw=sbws,
                            damage_poly=damage,
                            bounds=bounds,
                            show=False, title=f"{date} | {sub_event_id}",
                            path=f"./plots/plots_case_data/{date}_{sub_event_id.replace(':', '-')}.png")
     plot_route_and_wp_scores(
-        waypoint_data_table, route_as_visited=None, route_to_visit=None, damage_poly=damage,
+        waypoint_data_table, route_as_visited=route_as_visited,
+        route_to_visit=None, damage_poly=damage,
         show=False,
         title=f"{date} | {sub_event_id}",
         path=f"./plots/plots_waypoints_data/{date}_{sub_event_id.replace(':', '-')}.png",

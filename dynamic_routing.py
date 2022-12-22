@@ -21,7 +21,7 @@ def initial_influence_matrix_to_use(pars):
         return "symmetric"
 
 
-def dynamic_routing(waypoints_data, pars, random_seed, BASE_OUTPUT_FOLDER):
+def perform_dynamic_routing(waypoints_data, pars):
     routing_mode = pars["routing_mode"]
 
     waypoints = waypoints_data._wp.to_list()
@@ -34,18 +34,12 @@ def dynamic_routing(waypoints_data, pars, random_seed, BASE_OUTPUT_FOLDER):
             waypoints, dist_matrix, pars["max_influence"], pars["min_influence"], pars
         )
         matrix_type = "symmetric"
-        if pars['plots'] in {'all', 'main'}:
-            plot_influence_matrix_helper(waypoints, influence_matrix[matrix_type], 0,
-                                     BASE_OUTPUT_FOLDER, matrix_type)
     if pars["influence_matrix_type"].lower() in {"data-driven", "symmetric-first", "data-driven-first"}:
         influence_matrix["data-driven"] = create_data_driven_influence_matrix(
             waypoints, dist_matrix, pars["max_influence"], pars["min_influence"],
             pars["tornado_data_file"], pars["mag_limit"], pars["bin_width"], pars
         )
         matrix_type = "data-driven"
-        if pars['plots'] in {'all', 'main'}:
-            plot_influence_matrix_helper(waypoints, influence_matrix[matrix_type], 0,
-                                     BASE_OUTPUT_FOLDER, matrix_type)
     initial_waypoints_to_route = list(waypoints_data[waypoints_data['in_sbw'] == True].index)
     if pars["init_route"]:
         tour, dist_init = route_nearest_insertion(initial_waypoints_to_route)
@@ -124,24 +118,10 @@ def dynamic_routing(waypoints_data, pars, random_seed, BASE_OUTPUT_FOLDER):
                                              influence_matrix=influence_matrix,
                                              mode="nearest_insertion",
                                              last_wp=route_as_visited[-1])
-        if pars['plots'] in {'all'}:
-            plotter_utilities_mp(plot_route_and_wp_scores, kwargs=dict(
-                waypoints_data=waypoints_data,
-                route_as_visited=route_as_visited, route_to_visit=tour,
-                show=False, title=f"Route At {idx}",
-                path=f"{BASE_OUTPUT_FOLDER}/plots/routes/route_{idx:05d}.png"
-            ), mp=False)
     missed_waypoints = waypoints_data[
         (waypoints_data['visited'] == False) &
         (waypoints_data['damaged'] == True)
         ]
-    if pars['plots'] in {'all', 'main'}:
-        plotter_utilities_mp(plot_route_and_wp_scores, kwargs=dict(
-        waypoints_data=waypoints_data,
-        route_as_visited=route_as_visited, route_to_visit=tour,
-        show=False, title=f"Route At {idx}",
-        path=f"{BASE_OUTPUT_FOLDER}/plots/routes/route_{idx:05d}.png"
-    ), mp=False)
     return route_as_visited, all_memory, len(missed_waypoints), dist_init
 
 
