@@ -6,7 +6,7 @@ import socket
 from dynamic_routing import perform_dynamic_routing
 from pars.parfile_reader import parfile_reader
 from project_archangel_subfunctions import get_historical_cases_data, get_events_by_date, make_minimum_cases, \
-    make_pois_by_date, get_waypoints, create_waypoints_data_tables, plot_stuff
+    make_pois_by_date, get_waypoints, create_waypoints_data_tables, plot_stuff, limit_waypoints
 from route_nearest_insertion import route_nearest_insertion
 from utilities.utilities import automkdir, datetime_string, euclidean
 
@@ -40,6 +40,7 @@ def project_archangel(parfile):
 def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
     sbws, damage = sub_event['sbws'], sub_event['damage']
     waypoints = get_waypoints(pars, date, poi)
+    waypoints = limit_waypoints(sbws, damage, waypoints, pars)
     waypoint_data_table = create_waypoints_data_tables(pars, waypoints, sbws, damage, date)
     # plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table)
     route_as_visited, all_memory, n_missed_waypoints, dist_init = \

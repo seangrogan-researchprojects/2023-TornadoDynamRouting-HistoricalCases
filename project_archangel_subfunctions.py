@@ -33,6 +33,8 @@ def plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table,
         path=f"./plots/plots_waypoints_data/{date}_{sub_event_id.replace(':', '-')}.png",
         sbw=sbws, bounds=bounds
     )
+
+
 def get_historical_cases_data(pars):
     pickle_file = f"{pars['pickle_base']}/historical_data_pickle.pickle"
     data = read_pickle(pickle_file)
@@ -243,6 +245,18 @@ def get_events_by_date(pars, damage_polygons, sbws, dates):
     return events_by_date
 
 
+def limit_waypoints(sbws, damage, waypoints, pars):
+    polys = sbws + damage
+    print(len(waypoints))
+    new_waypoints = [
+        wp for wp in tqdm(waypoints, desc="spatial limit wpts")
+        if any(poly.contains(Point(wp)) for poly in polys)
+           or any(poly.distance(Point(wp)) <= pars['max_influence'] * min(pars['near_sbw_scale'], 1) for poly in polys)
+    ]
+    print(len(new_waypoints))
+    return new_waypoints
+
+
 def create_waypoints_data_tables(pars, waypoints, sbws, damage, date):
     pickle_file = f"{pars['pickle_base']}/waypoints_data_tables/{pars['waypoint_method']}_{pars['r_scan']}/{date}_{pars['waypoint_method']}_{pars['r_scan']}.pickle"
     waypoint_data_table = read_pickle(pickle_file)
@@ -253,12 +267,14 @@ def create_waypoints_data_tables(pars, waypoints, sbws, damage, date):
             waypoint_data_table = create_waypoints_data_table_mp(waypoints, damage, sbws, pars['r_scan'], pars)
     return waypoint_data_table
 
+
 def get_bounds(damage, sbws):
     polys = damage + sbws
     bound_data = [p.bounds for p in polys]
     minx, miny, maxx, maxy = zip(*bound_data)
     lb_x, ub_x, lb_y, ub_y = min(minx), max(maxx), min(miny), max(maxy)
     return [lb_x, ub_x, lb_y, ub_y]
+
 
 def create_waypoints_data_table_mp(waypoints, damage, sbws, r_scan, pars, bin_width=1000):
     with concurrent.futures.ProcessPoolExecutor() as ppe:
