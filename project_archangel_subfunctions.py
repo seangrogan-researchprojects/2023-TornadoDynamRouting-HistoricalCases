@@ -247,22 +247,23 @@ def get_events_by_date(pars, damage_polygons, sbws, dates):
 
 def limit_waypoints(sbws, damage, waypoints, pars, plot=True, date=None, sub_case=None):
     polys = sbws + damage
+    polys = [affinity.scale(p, pars['near_sbw_scale'], pars['near_sbw_scale']) for p in polys]
     print(len(waypoints))
     if plot:
         plot_with_polygon_case(waypoints=waypoints, sbw=sbws,
                                damage_poly=damage, bounds=None,
                                title=f"{date} | {sub_case} | n={len(waypoints)}",
-                               path=f"./plots/limit_wpts/BEFORE_{date}_{sub_case.replace(':', '-')}.png")
+                               path=f"./plots/limit_wpts/{date}_{sub_case.replace(':', '-')}_BEFORE.png")
     new_waypoints = [
         wp for wp in tqdm(waypoints, desc="spatial limit wpts")
         if any(poly.contains(Point(wp)) for poly in polys)
-           or any(poly.distance(Point(wp)) <= pars['max_influence'] * min(pars['near_sbw_scale'], 1) for poly in polys)
+           or any(poly.distance(Point(wp)) <= pars['max_influence'] * 1.05 for poly in polys)
     ]
     if plot:
         plot_with_polygon_case(waypoints=new_waypoints, sbw=sbws,
                                damage_poly=damage, bounds=None,
                                title=f"{date} | {sub_case} | n={len(new_waypoints)}",
-                               path=f"./plots/limit_wpts/AFTER_{date}_{sub_case.replace(':', '-')}.png")
+                               path=f"./plots/limit_wpts/{date}_{sub_case.replace(':', '-')}_AFTER.png")
 
     print(len(new_waypoints))
     return new_waypoints
