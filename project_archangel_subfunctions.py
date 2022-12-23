@@ -324,7 +324,7 @@ def create_waypoints_data_table(waypoints, damage, sbws, r_scan, pars, k=None, t
         if isinstance(_geoms, Polygon):
             _geoms = [_geoms]
         return any(geom.contains(Point(_point[0], _point[1])) for geom in _geoms) or \
-               any(geom.distance(Point(_point[0], _point[1])) <= _r_scan for geom in _geoms)
+               any(geom.distance(Point(_point[0], _point[1])) <= _r_scan + 1 for geom in _geoms)
 
     def is_nearby(_point, _geoms, _scale, _r_scan=0):
         if _scale is None:
