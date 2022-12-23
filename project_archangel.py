@@ -123,3 +123,4 @@ if __name__ == '__main__':
     project_archangel("./pars/par0.json")
     project_archangel("./pars/par1.json")
     project_archangel("./pars/par2.json")
+    project_archangel("./pars/par3.json")
