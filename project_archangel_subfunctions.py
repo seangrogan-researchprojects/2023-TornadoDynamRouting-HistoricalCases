@@ -259,7 +259,7 @@ def limit_waypoints(sbws, damage, waypoints, pars, plot=True, date=None, sub_cas
            or any(poly.distance(Point(wp)) <= pars['max_influence'] * min(pars['near_sbw_scale'], 1) for poly in polys)
     ]
     if plot:
-        plot_with_polygon_case(waypoints=waypoints, sbw=sbws,
+        plot_with_polygon_case(waypoints=new_waypoints, sbw=sbws,
                                damage_poly=damage, bounds=None,
                                title=f"{date} | {sub_case} | n={len(new_waypoints)}",
                                path=f"./plots/limit_wpts/AFTER_{date}_{sub_case.replace(':', '-')}.png")
