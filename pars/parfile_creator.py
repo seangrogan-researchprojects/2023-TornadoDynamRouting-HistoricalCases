@@ -28,8 +28,8 @@ def alldiff(elements):
 if __name__ == '__main__':
     outfolder = f"testing_folder_experiments_1"
     alt_pars = {
-        "min_score_to_consider": [0, 0.1, 0.2],# 0.3],
-        "influence_matrix_type": ["symmetric", "data-driven", "symmetric-first", "data-driven-first"],
+        "min_score_to_consider": [0, 0.1],# 0.3],
+        "influence_matrix_type": ["symmetric", "data-driven"],#, "symmetric-first", "data-driven-first"],
         # "init_route": [True, False],
         "routing_mode": ["order_scores"],
         # "max_influence": [5000, 10000, 20000],
