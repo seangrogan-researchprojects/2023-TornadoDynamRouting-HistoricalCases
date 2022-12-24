@@ -26,8 +26,8 @@ def create_waypoints(pars, poi, r_scan, method):
 
 
 def rectangular(pars, poi, r_scan):
-    r_scan = int(math.sqrt(2) * r_scan)
-    waypoints = list(set(round_point(pt, r_scan)
+    rec_dist = int(math.sqrt(2) * r_scan)
+    waypoints = list(set(round_point(pt, rec_dist)
                          for pt in tqdm(poi, desc="Rectangular")))
     return waypoints
 

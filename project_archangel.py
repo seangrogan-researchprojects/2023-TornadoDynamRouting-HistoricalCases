@@ -4,14 +4,14 @@ import time
 import socket
 
 from dynamic_routing import perform_dynamic_routing
-from pars.parfile_reader import parfile_reader
+from pars.parfile_reader import parfile_reader, dump_parfile
 from project_archangel_subfunctions import get_historical_cases_data, get_events_by_date, make_minimum_cases, \
-    make_pois_by_date, get_waypoints, create_waypoints_data_tables, plot_stuff, limit_waypoints
+    make_pois_by_date, get_waypoints, limit_waypoints, create_waypoints_data_tables
 from route_nearest_insertion import route_nearest_insertion
 from utilities.utilities import automkdir, datetime_string, euclidean
 
 
-def project_archangel(parfile):
+def project_archangel(parfile, tests_completed_file=None):
     pars = parfile_reader(parfile)
     sbws, damage_polygons, dates = get_historical_cases_data(pars)
     events_by_date = get_events_by_date(pars, damage_polygons, sbws, dates)
@@ -19,9 +19,14 @@ def project_archangel(parfile):
     pois_by_date = make_pois_by_date(dates, sbws, pars)
 
     log_file_path = f"./logs/log_{socket.gethostname()}_{datetime_string()}.csv"
+    tests_completed = parfile_reader(tests_completed_file)
+    tests_completed = {key: [tuple(entry) for entry in value] for key, value in tests_completed.items()}
     for date in dates:
         print(f"Working On {date}")
         for key, sub_event in events_by_date[date].items():
+            if (str(date), key) in tests_completed.get(pars["case_name"], list()):
+                print(f"Already completed {date}:{key}")
+                continue
             start_t = time.time()
             print(f"Working On Sub-Event {date} - {key}")
             poi = pois_by_date[date]
@@ -35,13 +40,17 @@ def project_archangel(parfile):
                 dist_init, minimum_hamiltonian_path,
                 minimum_hamiltonian_path_distance
             )
+            if pars["case_name"] not in tests_completed:
+                tests_completed[pars["case_name"]] = list()
+            tests_completed[pars["case_name"]].append((str(date), key))
+            dump_parfile(tests_completed, tests_completed_file)
 
 
 def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
     sbws, damage = sub_event['sbws'], sub_event['damage']
     waypoints = get_waypoints(pars, date, poi)
     waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event_id)
-    waypoint_data_table = create_waypoints_data_tables(pars, waypoints, sbws, damage, date)
+    waypoint_data_table = create_waypoints_data_tables(pars, waypoints, sbws, damage, date, sub_event_id)
     # plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table)
     route_as_visited, all_memory, n_missed_waypoints, dist_init = \
         perform_dynamic_routing(waypoint_data_table, pars)
@@ -63,7 +72,8 @@ def log_results(log_file_path, pars, date, sub_event, t_sec, n_damage_polys,
                                  zip(route_as_visited, route_as_visited[1:]))
     dist_last_damage, \
     dist_first_damage, \
-    dist_last_damage, dist_first_damage, wpt_num_last_damage, wpt_num_first_damage = -1, -1, -1, -1, -1, -1
+    dist_last_damage, dist_first_damage, \
+    wpt_num_last_damage, wpt_num_first_damage = -1, -1, -1, -1, -1, -1
     if any(all_memory):
         for i, (p1, dmg) in enumerate(zip(route_as_visited, all_memory)):
             if dmg:
@@ -85,7 +95,7 @@ def log_results(log_file_path, pars, date, sub_event, t_sec, n_damage_polys,
     else:
         delta_dist = dist_last_damage - dist_first_damage
         delta_wpt = wpt_num_last_damage - wpt_num_first_damage
-        score_as_dist = delta_dist / max(minimum_hamiltonian_path_distance,1)
+        score_as_dist = delta_dist / max(minimum_hamiltonian_path_distance, 1)
         score_as_wp = delta_wpt / n_damaged
     data = [
         ("current_datetime", datetime_string(current=True)),

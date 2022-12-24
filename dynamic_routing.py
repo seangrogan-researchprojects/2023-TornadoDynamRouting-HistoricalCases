@@ -37,7 +37,7 @@ def perform_dynamic_routing(waypoints_data, pars):
     if pars["influence_matrix_type"].lower() in {"data-driven", "symmetric-first", "data-driven-first"}:
         influence_matrix["data-driven"] = create_data_driven_influence_matrix(
             waypoints, dist_matrix, pars["max_influence"], pars["min_influence"],
-            pars["tornado_data_file"], pars["mag_limit"], pars["bin_width"], pars
+            pars["schematic_tornado_tracks"], pars["mag_limit"], pars["bin_width"], pars
         )
         matrix_type = "data-driven"
     initial_waypoints_to_route = list(waypoints_data[waypoints_data['in_sbw'] == True].index)

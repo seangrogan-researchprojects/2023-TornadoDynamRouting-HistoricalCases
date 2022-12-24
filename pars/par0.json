@@ -15,12 +15,15 @@
   "score_undamaged": 0,
   "near_sbw_scale" : 1.2,
   "influence_matrix_type": "symmetric",
-  "routing_mode": "order_scores",
+  "routing_mode": "do-nothing",
   "max_influence": 10000,
   "min_influence": 0,
   "init_route": false,
   "min_score_to_consider": 0.1,
   "short_memory_length": 15,
   "long_memory_length": 90,
-  "plots": "none"
+  "plots": "none",
+  "case_name": "default",
+  "mag_limit" : 1,
+  "bin_width" : 5
 }

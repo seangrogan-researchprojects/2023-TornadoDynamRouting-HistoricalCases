@@ -9,7 +9,7 @@ from utilities.utilities import automkdir
 def get_points_file(points_file):
     print(f"Reading {points_file}")
     points_file = gpd.read_file(points_file)
-    points = set(points_file.geometry.explode(index_parts=False).to_list())
+    points = points_file.geometry.explode(index_parts=False).to_list()
     points = {(int(round(pt.x)), int(round(pt.y))) for pt in points}
     points = list(points)
     print(f"Done Reading {points_file}")
