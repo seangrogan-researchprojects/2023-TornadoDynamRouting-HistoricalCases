@@ -33,7 +33,7 @@ if __name__ == '__main__':
         "init_route": [True, False],
         "routing_mode": ["order_scores"],
         "max_influence": [10000, 20000],
-        "r_scan": [1000],
+        "r_scan": [2500],
         "score_damaged": [10, 20]
     }
     data = []

@@ -270,17 +270,19 @@ def limit_waypoints(sbws, damage, waypoints, pars, plot=True, date=None, sub_cas
 
 
 def create_waypoints_data_tables(pars, waypoints, sbws, damage, date, sub_event_id):
-    pickle_file = f"{pars['pickle_base']}/waypoints_data_tables/{pars['waypoint_method']}_{pars['r_scan']}/{date}_{sub_event_id.replace(':','-')}_{pars['waypoint_method']}_{pars['r_scan']}.pickle"
+    pickle_file = f"{pars['pickle_base']}/waypoints_data_tables/{pars['waypoint_method']}_{pars['r_scan']}/{date}_{sub_event_id.replace(':', '-')}_{pars['waypoint_method']}_{pars['r_scan']}.pickle"
     waypoint_data_table = read_pickle(pickle_file)
     if waypoint_data_table is None:
         if len(waypoints) < 1000:
             waypoint_data_table = create_waypoints_data_table(waypoints, damage, sbws, pars['r_scan'], pars)
         else:
             waypoint_data_table = create_waypoints_data_table_mp(waypoints, damage, sbws, pars['r_scan'], pars)
-    if len(waypoint_data_table[waypoint_data_table["damaged"]]) <3:
+    if len(waypoint_data_table[waypoint_data_table["damaged"]]) < 3:
         print(f"LESS THAN THREE DAMAGED PTS")
-        closest_finder = [(_geom.exterior.distance(Point(_wp)), _wp) for _wp in waypoint_data_table._wp for _geom in damage ]
-        closest_finder.sort(key=lambda x:x[0])
+        damage = check_geoms(damage)
+        closest_finder = [(_geom.exterior.distance(Point(_wp)), _wp) for _wp in waypoint_data_table._wp for _geom in
+                          damage]
+        closest_finder.sort(key=lambda x: x[0])
         three_closest = closest_finder[:3]
         dists, wpts = zip(*three_closest)
         for wp in wpts:
@@ -326,15 +328,17 @@ def create_waypoints_data_table_wrapper(args=None, kwargs=None):
         return create_waypoints_data_table(*args, **kwargs)
 
 
+def check_geoms(geoms):
+    new_geoms = list()
+    for _geom in geoms:
+        if isinstance(_geom, MultiPolygon):
+            new_geoms += list(_geom.geoms)
+        else:
+            new_geoms.append(_geom)
+    return new_geoms
+
+
 def create_waypoints_data_table(waypoints, damage, sbws, r_scan, pars, k=None, total=None):
-    def check_geoms(geoms):
-        new_geoms = list()
-        for _geom in geoms:
-            if isinstance(_geom, MultiPolygon):
-                new_geoms += list(_geom.geoms)
-            else:
-                new_geoms.append(_geom)
-        return new_geoms
     def is_inside(_point, _geoms, _r_scan):
         if isinstance(_geoms, gpd.GeoDataFrame) or isinstance(_geoms, pd.DataFrame):
             _geoms = _geoms.geometry.to_list()
