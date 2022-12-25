@@ -21,9 +21,10 @@ def generalizable_test_box(parfile, computer_name, tests_completed_file):
             f"<pre><b>{computer_name}</b></pre>"
             f"\nERROR!\n"
             f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        telegram_bot_send_message(f"<pre><b>{computer_name}</b></pre>"
-                                  f"\nTRACEBACK :\n"
-                                  f"<pre>{traceback.format_exc()}</pre>")
+        telegram_bot_send_message(
+            f"<pre><b>{computer_name}</b></pre>"
+            f"\nTRACEBACK :\n"
+            f"<pre>{traceback.format_exc()}</pre>")
     else:
         telegram_bot_send_message(
             f"<pre><b>{computer_name}</b></pre>\n"
@@ -45,6 +46,7 @@ def cycle_generalizable_test_box(parfiles_folder, tests_completed_file):
             socket.gethostname(),
             tests_completed_file
         )
+
 
 if __name__ == '__main__':
     cycle_generalizable_test_box(

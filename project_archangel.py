@@ -11,7 +11,7 @@ from route_nearest_insertion import route_nearest_insertion
 from utilities.utilities import automkdir, datetime_string, euclidean
 
 
-def project_archangel(parfile, tests_completed_file=None):
+def project_archangel(parfile, tests_completed_file=None, skip_complex=True):
     pars = parfile_reader(parfile)
     sbws, damage_polygons, dates = get_historical_cases_data(pars)
     events_by_date = get_events_by_date(pars, damage_polygons, sbws, dates)
@@ -27,6 +27,9 @@ def project_archangel(parfile, tests_completed_file=None):
             if (str(date), key) in tests_completed.get(pars["case_name"], list()):
                 print(f"Already completed {date}:{key}")
                 continue
+            sbws, damage = sub_event['sbws'], sub_event['damage']
+            if len(damage) > 1 and skip_complex:
+                print(f"Skipping Event {date}:{key} because it's complex")
             start_t = time.time()
             print(f"Working On Sub-Event {date} - {key}")
             poi = pois_by_date[date]

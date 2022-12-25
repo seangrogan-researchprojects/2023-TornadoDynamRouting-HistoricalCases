@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 from shapely import affinity
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Polygon, Point, MultiPolygon
 from tqdm import tqdm, trange
 
 from utilities.file_io import read_sbw_file, read_geo_files_into_geopandas, get_points_file, read_json, write_json
@@ -327,6 +327,14 @@ def create_waypoints_data_table_wrapper(args=None, kwargs=None):
 
 
 def create_waypoints_data_table(waypoints, damage, sbws, r_scan, pars, k=None, total=None):
+    def check_geoms(geoms):
+        new_geoms = list()
+        for _geom in geoms:
+            if isinstance(_geom, MultiPolygon):
+                new_geoms += list(_geom.geoms)
+            else:
+                new_geoms.append(_geom)
+        return new_geoms
     def is_inside(_point, _geoms, _r_scan):
         if isinstance(_geoms, gpd.GeoDataFrame) or isinstance(_geoms, pd.DataFrame):
             _geoms = _geoms.geometry.to_list()
@@ -345,6 +353,8 @@ def create_waypoints_data_table(waypoints, damage, sbws, r_scan, pars, k=None, t
         scaled_geoms = [affinity.scale(_geom, xfact=_scale, yfact=_scale) for _geom in _geoms]
         return is_inside(_point, scaled_geoms, _r_scan)
 
+    damage = check_geoms(damage)
+    sbws = check_geoms(sbws)
     total_data = ""
     near_sbw_score = pars["score_near_sbw"]
     default_score = pars["score_in_sbw"]
