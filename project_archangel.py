@@ -1,4 +1,5 @@
 import csv
+import glob
 import os
 import time
 import socket
@@ -11,16 +12,25 @@ from route_nearest_insertion import route_nearest_insertion
 from utilities.utilities import automkdir, datetime_string, euclidean
 
 
-def project_archangel(parfile, tests_completed_file=None, skip_complex=True):
+def read_tests_completed_files(tests_completed_folder):
+    all_files = glob.glob(f"{tests_completed_folder}/*.json")
+    tests_completed = dict()
+    for file in all_files:
+        tests_completed.update(parfile_reader(file))
+    tests_completed = {key: [tuple(entry) for entry in value] for key, value in tests_completed.items()}
+    return tests_completed
+
+
+def project_archangel(parfile, log_file_path, tests_completed_folder, tests_completed_file=None, skip_complex=True):
     pars = parfile_reader(parfile)
     sbws, damage_polygons, dates = get_historical_cases_data(pars)
     events_by_date = get_events_by_date(pars, damage_polygons, sbws, dates)
     events_by_date = make_minimum_cases(dates, events_by_date, pars)
     pois_by_date = make_pois_by_date(dates, sbws, pars)
 
-    log_file_path = f"./logs/log_{socket.gethostname()}_{datetime_string()}.csv"
-    tests_completed = parfile_reader(tests_completed_file)
-    tests_completed = {key: [tuple(entry) for entry in value] for key, value in tests_completed.items()}
+    # log_file_path = f"./logs/log_{socket.gethostname()}_{datetime_string()}.csv"
+    tests_completed = read_tests_completed_files(tests_completed_folder)
+
     for date in dates:
         print(f"Working On {date}")
         for key, sub_event in events_by_date[date].items():
