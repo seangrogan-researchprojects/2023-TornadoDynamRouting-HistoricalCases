@@ -29,7 +29,7 @@ def generalizable_test_box(parfile, computer_name, k, *args):
         assert False
     telegram_bot_send_message(
         f"<pre><b>{computer_name}</b></pre>\n"
-        f"Starting!\n"
+        f"Starting! {k:0>6}\n"
         f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     try:
         log_file = f"./logs/log_{socket.gethostname()}_{datetime_string()}_{k:0>6}.csv"
@@ -46,7 +46,7 @@ def generalizable_test_box(parfile, computer_name, k, *args):
         traceback.print_exc()
         telegram_bot_send_message(
             f"<pre><b>{computer_name}</b></pre>"
-            f"\nERROR!\n"
+            f"\nERROR!  {k:0>6}\n"
             f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         telegram_bot_send_message(
             f"<pre><b>{computer_name}</b></pre>"
@@ -55,11 +55,11 @@ def generalizable_test_box(parfile, computer_name, k, *args):
     else:
         telegram_bot_send_message(
             f"<pre><b>{computer_name}</b></pre>\n"
-            f"FINISHED SUCCESSFULLY!\n"
+            f"FINISHED SUCCESSFULLY! {k:0>6}\n"
             f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     telegram_bot_send_message(
         f"<pre><b>{computer_name}</b></pre>\n"
-        f"Teminated\n"
+        f"Teminated {k:0>6}\n"
         f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 def cycle_generalizable_test_box(parfiles_folder, tests_completed_file):
