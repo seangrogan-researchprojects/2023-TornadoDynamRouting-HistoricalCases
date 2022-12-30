@@ -95,6 +95,7 @@ def generalizable_test_box_wrapper(args):
 
 
 if __name__ == '__main__':
+    KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname(), set_val=False)
     cycle_generalizable_test_box_mp(
         parfiles_folder="./pars/testing_folder_experiments_1/",
         tests_completed_file="./datafiles/tests_completed.json"

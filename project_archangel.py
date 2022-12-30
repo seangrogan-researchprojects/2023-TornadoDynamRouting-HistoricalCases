@@ -4,19 +4,29 @@ import os
 import time
 import socket
 
+from tqdm import tqdm
+
 from dynamic_routing import perform_dynamic_routing
 from pars.parfile_reader import parfile_reader, dump_parfile
 from project_archangel_subfunctions import get_historical_cases_data, get_events_by_date, make_minimum_cases, \
     make_pois_by_date, get_waypoints, limit_waypoints, create_waypoints_data_tables
 from route_nearest_insertion import route_nearest_insertion
+from utilities.kill_switch import KILL_SWITCH
 from utilities.utilities import automkdir, datetime_string, euclidean
 
 
 def read_tests_completed_files(tests_completed_folder):
     all_files = glob.glob(f"{tests_completed_folder}/*.json")
     tests_completed = dict()
-    for file in all_files:
-        tests_completed.update(parfile_reader(file))
+    for file in tqdm(all_files):
+        for i in range(60):
+            try:
+                tests_completed.update(parfile_reader(file))
+            except:
+                time.sleep(2)
+            else:
+                break
+
     tests_completed = {key: [tuple(entry) for entry in value] for key, value in tests_completed.items()}
     return tests_completed
 
@@ -57,6 +67,7 @@ def project_archangel(parfile, log_file_path, tests_completed_folder, tests_comp
                 tests_completed[pars["case_name"]] = list()
             tests_completed[pars["case_name"]].append((str(date), key))
             dump_parfile(tests_completed, tests_completed_file)
+            KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname())
 
 
 def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
