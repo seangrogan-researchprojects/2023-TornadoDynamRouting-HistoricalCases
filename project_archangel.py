@@ -3,6 +3,7 @@ import glob
 import os
 import time
 import socket
+from collections import defaultdict
 
 from tqdm import tqdm
 
@@ -17,11 +18,14 @@ from utilities.utilities import automkdir, datetime_string, euclidean
 
 def read_tests_completed_files(tests_completed_folder):
     all_files = glob.glob(f"{tests_completed_folder}/*.json")
-    tests_completed = dict()
+    tests_completed = defaultdict(set)
     for file in tqdm(all_files):
         for i in range(60):
             try:
-                tests_completed.update(parfile_reader(file))
+                tests_to_add = parfile_reader(file)
+                for k, v in tests_to_add.items():
+                    _v = {tuple(ele) for ele in v}
+                    tests_completed[k].update(_v)
             except:
                 time.sleep(2)
             else:
