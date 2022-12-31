@@ -77,7 +77,7 @@ def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
     waypoint_data_table = create_waypoints_data_tables(pars, waypoints, sbws, damage, date, sub_event_id)
     # plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table)
     route_as_visited, all_memory, n_missed_waypoints, dist_init = \
-        perform_dynamic_routing(waypoint_data_table, pars)
+        perform_dynamic_routing(waypoint_data_table, pars, date, sub_event_id)
 
     waypoints_to_route = waypoint_data_table[waypoint_data_table["damaged"] == True]["_wp"].to_list()
     minimum_hamiltonian_path, minimum_hamiltonian_path_distance = \

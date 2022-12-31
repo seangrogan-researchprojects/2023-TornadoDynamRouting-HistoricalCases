@@ -43,7 +43,7 @@ def perform_dynamic_routing(waypoints_data, pars, event_date, event_id):
         matrix_type = "data-driven"
     initial_waypoints_to_route = list(waypoints_data[waypoints_data['in_sbw'] == True].index)
     if pars["init_route"]:
-        pickle_file = f"{pars['pickle_base']}/init_routes/{event_date}_{event_id}_{pars['r_scan']}_{pars['waypoint_method']}.pickle"
+        pickle_file = f"{pars['pickle_base']}/init_routes/{event_date}_{event_id.replace(':', '-')}_{pars['r_scan']}_{pars['waypoint_method']}.pickle"
         _data = read_pickle(pickle_file)
         if _data is None:
             tour, dist_init = route_nearest_insertion(initial_waypoints_to_route)

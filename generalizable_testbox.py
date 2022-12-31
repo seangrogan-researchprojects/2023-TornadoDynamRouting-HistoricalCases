@@ -58,10 +58,6 @@ def generalizable_test_box(parfile, computer_name, k, *args):
             f"<pre><b>{computer_name}</b></pre>\n"
             f"FINISHED SUCCESSFULLY! {k:0>6}\n"
             f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    telegram_bot_send_message(
-        f"<pre><b>{computer_name}</b></pre>\n"
-        f"Teminated {k:0>6}\n"
-        f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     tests_completed_counter_telegram_message(f"./datafiles/", "./pars/testing_folder_experiments_1")
 
 
@@ -87,10 +83,14 @@ def cycle_generalizable_test_box_mp(parfiles_folder, tests_completed_file):
         socket.gethostname(),
         i
     ) for i, parfile in enumerate(tqdm(parfiles))]
-    with concurrent.futures.ProcessPoolExecutor() as PPE:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=2) as PPE:
         r = PPE.map(generalizable_test_box_wrapper, arg_list)
         for _ in tqdm(r, total=len(arg_list), desc="OUTER WRAPPER"):
             pass
+    telegram_bot_send_message(
+        f"<pre><b>{socket.gethostname()}</b></pre>\n"
+        f"Teminated\n"
+        f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
 def generalizable_test_box_wrapper(args):
