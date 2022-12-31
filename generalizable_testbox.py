@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 from pars.parfile_reader import many_parfiles_reader, dump_parfile
 from project_archangel import project_archangel
+from tests_completed_counter import tests_completed_counter_telegram_message
 from utilities.kill_switch import KILL_SWITCH
 from utilities.telegram_bot import telegram_bot_send_message
 from utilities.utilities import datetime_string
@@ -33,7 +34,7 @@ def generalizable_test_box(parfile, computer_name, k, *args):
         f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     try:
         log_file = f"./logs/log_{socket.gethostname()}_{datetime_string()}_{k:0>6}.csv"
-        tests_completed_file =f"./datafiles/tests_completed_{k:0>6}.json"
+        tests_completed_file = f"./datafiles/tests_completed_{k:0>6}.json"
         tests_completed_folder = f"./datafiles/"
         project_archangel(
             parfile=parfile,
@@ -61,6 +62,8 @@ def generalizable_test_box(parfile, computer_name, k, *args):
         f"<pre><b>{computer_name}</b></pre>\n"
         f"Teminated {k:0>6}\n"
         f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    tests_completed_counter_telegram_message(f"./datafiles/", "./pars/testing_folder_experiments_1")
+
 
 def cycle_generalizable_test_box(parfiles_folder, tests_completed_file):
     parfiles = many_parfiles_reader(parfiles_folder)

@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from influence_matrix_creators import create_symmetric_influence_matrix, plot_influence_matrix_helper, \
     create_data_driven_influence_matrix
+from utilities.pickles_io import read_pickle, write_pickle
 from utilities.plotter_utilities import plot_influence_matrix, plotter_utilities_mp, plot_route_and_wp_scores
 from route_nearest_insertion import route_nearest_insertion
 from utilities.utilities import datetime_string, euclidean
@@ -21,7 +22,7 @@ def initial_influence_matrix_to_use(pars):
         return "symmetric"
 
 
-def perform_dynamic_routing(waypoints_data, pars):
+def perform_dynamic_routing(waypoints_data, pars, event_date, event_id):
     routing_mode = pars["routing_mode"]
 
     waypoints = waypoints_data._wp.to_list()
@@ -42,7 +43,13 @@ def perform_dynamic_routing(waypoints_data, pars):
         matrix_type = "data-driven"
     initial_waypoints_to_route = list(waypoints_data[waypoints_data['in_sbw'] == True].index)
     if pars["init_route"]:
-        tour, dist_init = route_nearest_insertion(initial_waypoints_to_route)
+        pickle_file = f"{pars['pickle_base']}/init_routes/{event_date}_{event_id}_{pars['r_scan']}_{pars['waypoint_method']}.pickle"
+        _data = read_pickle(pickle_file)
+        if _data is None:
+            tour, dist_init = route_nearest_insertion(initial_waypoints_to_route)
+            write_pickle(pickle_file, (tour, dist_init))
+        else:
+            tour, dist_init = _data
     else:
         tour = get_init_dynamic_tour(pars, waypoints_data, dist_matrix, influence_matrix, waypoints)
         dist_init = None
