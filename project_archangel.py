@@ -31,7 +31,7 @@ def read_tests_completed_files(tests_completed_folder):
             else:
                 break
 
-    tests_completed = {key: [tuple(entry) for entry in value] for key, value in tests_completed.items()}
+    tests_completed = {key: sorted([tuple(entry) for entry in value]) for key, value in tests_completed.items()}
     return tests_completed
 
 
