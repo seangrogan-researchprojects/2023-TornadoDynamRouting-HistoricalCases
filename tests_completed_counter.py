@@ -1,6 +1,7 @@
 import datetime
 import json
 import socket
+from time import sleep
 
 from pars.parfile_reader import many_parfiles_reader
 from project_archangel import read_tests_completed_files
@@ -31,3 +32,7 @@ def tests_completed_counter_telegram_message(folder, parfiles_folder):
 
 if __name__ == '__main__':
     tests_completed_counter_telegram_message(f"./datafiles/", "./pars/testing_folder_experiments_1")
+    for i in range(48):
+        sleep(60*60)
+        tests_completed_counter_telegram_message(f"./datafiles/", "./pars/testing_folder_experiments_1")
+

@@ -35,7 +35,8 @@ def read_tests_completed_files(tests_completed_folder):
     return tests_completed
 
 
-def project_archangel(parfile, log_file_path, tests_completed_folder, tests_completed_file=None, skip_complex=True):
+def project_archangel(parfile, log_file_path, tests_completed_folder, tests_completed_file=None, skip_complex=True,
+                      skip_limit=4000):
     pars = parfile_reader(parfile)
     sbws, damage_polygons, dates = get_historical_cases_data(pars)
     events_by_date = get_events_by_date(pars, damage_polygons, sbws, dates)
@@ -54,6 +55,12 @@ def project_archangel(parfile, log_file_path, tests_completed_folder, tests_comp
             sbws, damage = sub_event['sbws'], sub_event['damage']
             if len(damage) > 1 and skip_complex:
                 print(f"Skipping Event {date}:{key} because it's complex")
+                continue
+            waypoints = get_waypoints(pars, date,  pois_by_date[date])
+            waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event, plot=False)
+            if bool(skip_limit) and len(waypoints) >= skip_limit:
+                print(f"Skipping Event {date}:{key} because it's bigger than {skip_limit}")
+                continue
             start_t = time.time()
             print(f"Working On Sub-Event {date} - {key}")
             poi = pois_by_date[date]

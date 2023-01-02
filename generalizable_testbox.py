@@ -3,6 +3,7 @@ import datetime
 import os
 import socket
 import traceback
+from concurrent.futures import as_completed
 
 from tqdm import tqdm
 
@@ -83,9 +84,9 @@ def cycle_generalizable_test_box_mp(parfiles_folder, tests_completed_file):
         socket.gethostname(),
         i
     ) for i, parfile in enumerate(tqdm(parfiles))]
-    with concurrent.futures.ProcessPoolExecutor(max_workers=2) as PPE:
-        r = PPE.map(generalizable_test_box_wrapper, arg_list)
-        for _ in tqdm(r, total=len(arg_list), desc="OUTER WRAPPER"):
+    with concurrent.futures.ProcessPoolExecutor() as PPE:
+        r = [PPE.submit(generalizable_test_box_wrapper, args=arg) for arg in arg_list]
+        for _ in tqdm(as_completed(r), total=len(arg_list), desc="OUTER WRAPPER"):
             pass
     telegram_bot_send_message(
         f"<pre><b>{socket.gethostname()}</b></pre>\n"
