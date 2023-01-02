@@ -151,9 +151,9 @@ def update_route_function(init_tour, candidate_waypoints,
         new_tour = candidate_waypoints.sort_values('score', ascending=False)["_wp"].to_list()
         return new_tour
     # waypoints_to_visit = waypoints_data[(waypoints_data['in_sbw'] == True) & (waypoints_data['visited'] == False)]
-    if mode in {'do_nothing'}:
+    if mode in {'do_nothing', 'do-nothing'}:
         new_tour = init_tour[:]
-    elif mode in {'order_scores', 'scores_in_order'}:
+    elif mode in {'order_scores', 'scores_in_order', "order-scores"}:
         new_tour = candidate_waypoints.sort_values('score', ascending=False)["_wp"].to_list()[:5]
     elif mode in {'group_scores_in_order'}:
         candidate_waypoints = update_scores(waypoints_data,
