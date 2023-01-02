@@ -3,25 +3,40 @@ import glob
 import os
 import time
 import socket
+from collections import defaultdict
+
+from tqdm import tqdm
 
 from dynamic_routing import perform_dynamic_routing
 from pars.parfile_reader import parfile_reader, dump_parfile
 from project_archangel_subfunctions import get_historical_cases_data, get_events_by_date, make_minimum_cases, \
     make_pois_by_date, get_waypoints, limit_waypoints, create_waypoints_data_tables
 from route_nearest_insertion import route_nearest_insertion
+from utilities.kill_switch import KILL_SWITCH
 from utilities.utilities import automkdir, datetime_string, euclidean
 
 
 def read_tests_completed_files(tests_completed_folder):
     all_files = glob.glob(f"{tests_completed_folder}/*.json")
-    tests_completed = dict()
-    for file in all_files:
-        tests_completed.update(parfile_reader(file))
-    tests_completed = {key: [tuple(entry) for entry in value] for key, value in tests_completed.items()}
+    tests_completed = defaultdict(set)
+    for file in tqdm(all_files):
+        for i in range(60):
+            try:
+                tests_to_add = parfile_reader(file)
+                for k, v in tests_to_add.items():
+                    _v = {tuple(ele) for ele in v}
+                    tests_completed[k].update(_v)
+            except:
+                time.sleep(2)
+            else:
+                break
+
+    tests_completed = {key: sorted([tuple(entry) for entry in value]) for key, value in tests_completed.items()}
     return tests_completed
 
 
-def project_archangel(parfile, log_file_path, tests_completed_folder, tests_completed_file=None, skip_complex=True):
+def project_archangel(parfile, log_file_path, tests_completed_folder, tests_completed_file=None, skip_complex=True,
+                      skip_limit=4000):
     pars = parfile_reader(parfile)
     sbws, damage_polygons, dates = get_historical_cases_data(pars)
     events_by_date = get_events_by_date(pars, damage_polygons, sbws, dates)
@@ -40,6 +55,12 @@ def project_archangel(parfile, log_file_path, tests_completed_folder, tests_comp
             sbws, damage = sub_event['sbws'], sub_event['damage']
             if len(damage) > 1 and skip_complex:
                 print(f"Skipping Event {date}:{key} because it's complex")
+                continue
+            waypoints = get_waypoints(pars, date,  pois_by_date[date])
+            waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event, plot=False)
+            if bool(skip_limit) and len(waypoints) >= skip_limit:
+                print(f"Skipping Event {date}:{key} because it's bigger than {skip_limit}")
+                continue
             start_t = time.time()
             print(f"Working On Sub-Event {date} - {key}")
             poi = pois_by_date[date]
@@ -57,6 +78,7 @@ def project_archangel(parfile, log_file_path, tests_completed_folder, tests_comp
                 tests_completed[pars["case_name"]] = list()
             tests_completed[pars["case_name"]].append((str(date), key))
             dump_parfile(tests_completed, tests_completed_file)
+            KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname())
 
 
 def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
@@ -66,7 +88,7 @@ def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
     waypoint_data_table = create_waypoints_data_tables(pars, waypoints, sbws, damage, date, sub_event_id)
     # plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table)
     route_as_visited, all_memory, n_missed_waypoints, dist_init = \
-        perform_dynamic_routing(waypoint_data_table, pars)
+        perform_dynamic_routing(waypoint_data_table, pars, date, sub_event_id)
 
     waypoints_to_route = waypoint_data_table[waypoint_data_table["damaged"] == True]["_wp"].to_list()
     minimum_hamiltonian_path, minimum_hamiltonian_path_distance = \
