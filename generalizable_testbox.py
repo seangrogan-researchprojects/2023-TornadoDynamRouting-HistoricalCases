@@ -37,13 +37,11 @@ def generalizable_test_box(parfile, computer_name, k, *args):
         log_file = f"./logs/log_{socket.gethostname()}_{datetime_string()}_{k:0>6}.csv"
         tests_completed_file = f"./datafiles/tests_completed_{k:0>6}.json"
         tests_completed_folder = f"./datafiles/"
-        project_archangel(
-            parfile=parfile,
-            log_file_path=log_file,
-            tests_completed_file=tests_completed_file,
-            tests_completed_folder=tests_completed_folder,
-            skip_complex=True
-        )
+        project_archangel(parfile=parfile, log_file_path=log_file,
+                          tests_completed_file=tests_completed_file,
+                          tests_completed_folder=tests_completed_folder,
+                          skip_complex=True,
+                          skip_limit=3_000)
     except:
         traceback.print_exc()
         telegram_bot_send_message(

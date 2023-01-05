@@ -27,7 +27,7 @@ def read_tests_completed_files(tests_completed_folder):
                     _v = {tuple(ele) for ele in v}
                     tests_completed[k].update(_v)
             except:
-                time.sleep(2)
+                time.sleep(1)
             else:
                 break
 
@@ -35,8 +35,9 @@ def read_tests_completed_files(tests_completed_folder):
     return tests_completed
 
 
-def project_archangel(parfile, log_file_path, tests_completed_folder, tests_completed_file=None, skip_complex=True,
-                      skip_limit=4000):
+def project_archangel(parfile, log_file_path, tests_completed_folder,
+                      tests_completed_file=None, skip_complex=True,
+                      skip_limit=False):
     pars = parfile_reader(parfile)
     sbws, damage_polygons, dates = get_historical_cases_data(pars)
     events_by_date = get_events_by_date(pars, damage_polygons, sbws, dates)
