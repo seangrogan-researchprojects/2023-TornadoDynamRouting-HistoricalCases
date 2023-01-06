@@ -28,7 +28,7 @@ def tests_completed_counter_telegram_message(folder, parfiles_folder):
         f"Tests Attempted : {len(data)}\n"
         f"Tests in Folder : {len(parfiles)}\n"
         f"Tests Attempted : {int(len(data) * 1000 / len(parfiles)) / 10}%\n"
-        f"Tests Completed : {int(sum(completed_counter) * 1000 / len(parfiles)) / 10}%\n</pre>"
+        f"Tests Completed : {int(sum(completed_counter) * 1000 / len(parfiles)) / 10}%\n"
         f"Close Completed : {int(sum(close_completed_counter) * 1000 / len(parfiles)) / 10}%\n</pre>"
         f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
