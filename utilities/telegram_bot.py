@@ -1,7 +1,10 @@
+import traceback
+
 import telegram
 from telegram import ParseMode
 
 from pars.parfile_reader import parfile_reader
+from utilities.utilities import datetime_string
 
 
 def telegram_bot_send_message(message, telegram_pars="./pars/telegram_api.json"):
@@ -15,6 +18,9 @@ def telegram_bot_send_message(message, telegram_pars="./pars/telegram_api.json")
         )
     except:
         print(f"Struggled sending message {message}")
+        with open(f"TelegramExceptions{datetime_string()}.txt", "a") as f:
+            f.write(traceback.format_exc())
+            f.write(f"{'':=>120}")
 
 
 if __name__ == '__main__':
