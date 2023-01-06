@@ -40,8 +40,8 @@ def generalizable_test_box(parfile, computer_name, k, *args):
         project_archangel(parfile=parfile, log_file_path=log_file,
                           tests_completed_file=tests_completed_file,
                           tests_completed_folder=tests_completed_folder,
-                          skip_complex=True,
-                          skip_limit=3_000)
+                          skip_complex=False,
+                          skip_limit=5_000)
     except:
         traceback.print_exc()
         telegram_bot_send_message(
@@ -72,7 +72,7 @@ def cycle_generalizable_test_box(parfiles_folder, tests_completed_file):
         )
 
 
-def cycle_generalizable_test_box_mp(parfiles_folder, tests_completed_file):
+def cycle_generalizable_test_box_mp(parfiles_folder, tests_completed_file, max_workers=None):
     parfiles = many_parfiles_reader(parfiles_folder)
     KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname())
     if not os.path.exists(tests_completed_file):
@@ -82,7 +82,13 @@ def cycle_generalizable_test_box_mp(parfiles_folder, tests_completed_file):
         socket.gethostname(),
         i
     ) for i, parfile in enumerate(tqdm(parfiles))]
-    with concurrent.futures.ProcessPoolExecutor() as PPE:
+    if 0 < max_workers <= 1:
+        max_workers = max(1, min(int(round(max_workers * os.cpu_count())), os.cpu_count()))
+        print(f"max_workers : {max_workers}")
+    elif isinstance(max_workers, int):
+        max_workers = max(1, min(max_workers, os.cpu_count()))
+        print(f"max_workers : {max_workers}")
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as PPE:
         r = [PPE.submit(generalizable_test_box_wrapper, args=arg) for arg in arg_list]
         for _ in tqdm(as_completed(r), total=len(arg_list), desc="OUTER WRAPPER"):
             pass
@@ -100,5 +106,6 @@ if __name__ == '__main__':
     KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname(), set_val=False)
     cycle_generalizable_test_box_mp(
         parfiles_folder="./pars/testing_folder_experiments_1/",
-        tests_completed_file="./datafiles/tests_completed.json"
+        tests_completed_file="./datafiles/tests_completed.json",
+        max_workers=0.66
     )
