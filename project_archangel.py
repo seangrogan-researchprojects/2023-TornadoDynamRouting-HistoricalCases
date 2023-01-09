@@ -85,7 +85,7 @@ def project_archangel(parfile, log_file_path, tests_completed_folder,
 def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
     sbws, damage = sub_event['sbws'], sub_event['damage']
     waypoints = get_waypoints(pars, date, poi)
-    waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event_id)
+    waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event_id, sub_event_id=sub_event_id)
     waypoint_data_table = create_waypoints_data_tables(pars, waypoints, sbws, damage, date, sub_event_id)
     # plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table)
     route_as_visited, all_memory, n_missed_waypoints, dist_init = \

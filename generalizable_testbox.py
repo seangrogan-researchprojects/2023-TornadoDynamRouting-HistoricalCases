@@ -116,6 +116,6 @@ if __name__ == '__main__':
             parfiles_folder="./pars/testing_folder_experiments_1/",
             tests_completed_file="./datafiles/tests_completed.json",
             sklim=sklim,
-            max_workers=99
+            max_workers=0.99
         )
         KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name="GLOBAL")
