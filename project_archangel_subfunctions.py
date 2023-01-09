@@ -245,7 +245,7 @@ def get_events_by_date(pars, damage_polygons, sbws, dates):
     return events_by_date
 
 
-def limit_waypoints(sbws, damage, waypoints, pars, plot=True, date=None, sub_case=None):
+def limit_waypoints(sbws, damage, waypoints, pars, plot=True, date=None, sub_case=None, sub_event_id=None):
     polys = sbws + damage
     polys = [affinity.scale(p, pars['near_sbw_scale'], pars['near_sbw_scale']) for p in polys]
     print(len(waypoints))
@@ -256,7 +256,8 @@ def limit_waypoints(sbws, damage, waypoints, pars, plot=True, date=None, sub_cas
                                path=f"./plots/limit_wpts/{date}_{sub_case.replace(':', '-')}_BEFORE.png")
     picklefile = f"{pars['pickle_base']}/waypoints_data_tables_limited" \
                  f"/{pars['waypoint_method']}_{pars['r_scan']}/" \
-                 f"{date}_{sub_case.replace(':', '-')}_{pars['waypoint_method']}_{pars['r_scan']}_{str(pars['near_sbw_scale']).replace('.', '-')}_{len(waypoints)}.pickle"
+                 f"{date}_{sub_event_id.replace(':', '-')}_{pars['waypoint_method']}" \
+                 f"_{pars['r_scan']}_{str(pars['near_sbw_scale']).replace('.', '-')}_{len(waypoints)}.pickle"
 
     new_waypoints = read_pickle(picklefile)
     if new_waypoints is None:

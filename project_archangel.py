@@ -58,7 +58,7 @@ def project_archangel(parfile, log_file_path, tests_completed_folder,
                 print(f"Skipping Event {date}:{key} because it's complex")
                 continue
             waypoints = get_waypoints(pars, date,  pois_by_date[date])
-            waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event, plot=False)
+            waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event, plot=False, sub_event_id = key)
             if bool(skip_limit) and len(waypoints) >= skip_limit:
                 print(f"Skipping Event {date}:{key} because it's bigger than {skip_limit}")
                 continue
