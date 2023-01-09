@@ -254,11 +254,18 @@ def limit_waypoints(sbws, damage, waypoints, pars, plot=True, date=None, sub_cas
                                damage_poly=damage, bounds=None,
                                title=f"{date} | {sub_case} | n={len(waypoints)}",
                                path=f"./plots/limit_wpts/{date}_{sub_case.replace(':', '-')}_BEFORE.png")
-    new_waypoints = [
-        wp for wp in tqdm(waypoints, desc="spatial limit wpts")
-        if any(poly.contains(Point(wp)) for poly in polys)
-           or any(poly.distance(Point(wp)) <= pars['max_influence'] * 1.05 for poly in polys)
-    ]
+    picklefile = f"{pars['pickle_base']}/waypoints_data_tables_limited" \
+                 f"/{pars['waypoint_method']}_{pars['r_scan']}/" \
+                 f"{date}_{sub_case.replace(':', '-')}_{pars['waypoint_method']}_{pars['r_scan']}_{str(pars['near_sbw_scale']).replace('.', '-')}_{len(waypoints)}.pickle"
+
+    new_waypoints = read_pickle(picklefile)
+    if new_waypoints is None:
+        new_waypoints = [
+            wp for wp in tqdm(waypoints, desc="spatial limit wpts")
+            if any(poly.contains(Point(wp)) for poly in polys)
+               or any(poly.distance(Point(wp)) <= pars['max_influence'] * 1.05 for poly in polys)
+        ]
+        write_pickle(picklefile, new_waypoints)
     if plot:
         plot_with_polygon_case(waypoints=new_waypoints, sbw=sbws,
                                damage_poly=damage, bounds=None,

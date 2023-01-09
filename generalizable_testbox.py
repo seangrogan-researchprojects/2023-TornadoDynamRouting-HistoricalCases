@@ -104,6 +104,7 @@ def generalizable_test_box_wrapper(args):
 
 if __name__ == '__main__':
     KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname(), set_val=False)
+    KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name="GLOBAL",set_val=False)
     sklims = list(range(1000, 10001, 500))
     sklims = sklims + [False]
     for sklim in sklims:
@@ -117,4 +118,4 @@ if __name__ == '__main__':
             sklim=sklim,
             max_workers=99
         )
-        KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname())
+        KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name="GLOBAL")
