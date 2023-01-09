@@ -41,7 +41,7 @@ def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5)
     incomplete_counter = sorted([(len(v), k) for k, v in data.items() if len(v) < max_tests])
     v, k = zip(*incomplete_counter)
     counter = Counter(v)
-    for v, k in test_counter:
+    for v, k in reversed(test_counter):
         if v >= max_tests:
             print("*", end="")
         else:
