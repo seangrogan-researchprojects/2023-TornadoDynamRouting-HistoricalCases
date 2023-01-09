@@ -15,7 +15,7 @@ from utilities.telegram_bot import telegram_bot_send_message
 from utilities.utilities import datetime_string
 
 
-def generalizable_test_box(parfile, computer_name, k, *args):
+def generalizable_test_box(parfile, computer_name, k, sklim, *args):
     try:
         KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname())
     except:
@@ -41,7 +41,7 @@ def generalizable_test_box(parfile, computer_name, k, *args):
                           tests_completed_file=tests_completed_file,
                           tests_completed_folder=tests_completed_folder,
                           skip_complex=False,
-                          skip_limit=5_000)
+                          skip_limit=sklim)
     except:
         traceback.print_exc()
         telegram_bot_send_message(
@@ -60,7 +60,7 @@ def generalizable_test_box(parfile, computer_name, k, *args):
     tests_completed_counter_telegram_message(f"./datafiles/", "./pars/testing_folder_experiments_1")
 
 
-def cycle_generalizable_test_box(parfiles_folder, tests_completed_file):
+def cycle_generalizable_test_box(parfiles_folder, tests_completed_file, sklim):
     parfiles = many_parfiles_reader(parfiles_folder)
     if not os.path.exists(tests_completed_file):
         dump_parfile(dict(), tests_completed_file)
@@ -68,11 +68,11 @@ def cycle_generalizable_test_box(parfiles_folder, tests_completed_file):
         generalizable_test_box(
             parfile,
             socket.gethostname(),
-            tests_completed_file, 0
+            tests_completed_file, 0, sklim
         )
 
 
-def cycle_generalizable_test_box_mp(parfiles_folder, tests_completed_file, max_workers=None):
+def cycle_generalizable_test_box_mp(parfiles_folder, tests_completed_file, sklim, max_workers=None):
     parfiles = many_parfiles_reader(parfiles_folder)
     KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname())
     if not os.path.exists(tests_completed_file):
@@ -80,10 +80,10 @@ def cycle_generalizable_test_box_mp(parfiles_folder, tests_completed_file, max_w
     arg_list = [(
         parfile,
         socket.gethostname(),
-        i
+        i, sklim
     ) for i, parfile in enumerate(tqdm(parfiles))]
-    if 0 < max_workers <= 1:
-        max_workers = max(1, min(int(round(max_workers * os.cpu_count())), os.cpu_count()))
+    if 0 < max_workers < 1:
+        max_workers = max(1, min(int(round(max_workers * os.cpu_count())), os.cpu_count() - 1))
         print(f"max_workers : {max_workers}")
     elif isinstance(max_workers, int):
         max_workers = max(1, min(max_workers, os.cpu_count()))
@@ -104,8 +104,12 @@ def generalizable_test_box_wrapper(args):
 
 if __name__ == '__main__':
     KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname(), set_val=False)
-    cycle_generalizable_test_box_mp(
-        parfiles_folder="./pars/testing_folder_experiments_1/",
-        tests_completed_file="./datafiles/tests_completed.json",
-        max_workers=0.66
-    )
+    sklims = list(range(1000, 10001, 500))
+    sklims = sklims + [False]
+    for sklim in sklims:
+        cycle_generalizable_test_box_mp(
+            parfiles_folder="./pars/testing_folder_experiments_1/",
+            tests_completed_file="./datafiles/tests_completed.json",
+            sklim=sklim,
+            max_workers=0.66
+        )
