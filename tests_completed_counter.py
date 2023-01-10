@@ -33,7 +33,7 @@ def tests_completed_counter_telegram_message(folder, parfiles_folder):
         f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
-def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5):
+def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5, skip_done=True):
     data = read_tests_completed_files(folder)
     parfiles = many_parfiles_reader(parfiles_folder)
     names = [parfile_reader(parfile)['case_name'] for parfile in parfiles]
@@ -43,6 +43,8 @@ def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5)
     v, k = zip(*incomplete_counter)
     counter = Counter(v)
     for v, k in reversed(test_counter):
+        if skip_done and v>=max_tests:
+            continue
         if v >= max_tests:
             print("*", end=" ")
         else:
