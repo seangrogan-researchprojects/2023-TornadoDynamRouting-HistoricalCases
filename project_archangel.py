@@ -1,4 +1,5 @@
 import csv
+import datetime
 import glob
 import os
 import time
@@ -13,6 +14,7 @@ from project_archangel_subfunctions import get_historical_cases_data, get_events
     make_pois_by_date, get_waypoints, limit_waypoints, create_waypoints_data_tables
 from route_nearest_insertion import route_nearest_insertion
 from utilities.kill_switch import KILL_SWITCH
+from utilities.telegram_bot import telegram_bot_send_message
 from utilities.utilities import automkdir, datetime_string, euclidean
 
 
@@ -39,6 +41,11 @@ def project_archangel(parfile, log_file_path, tests_completed_folder,
                       tests_completed_file=None, skip_complex=True,
                       skip_limit=False):
     pars = parfile_reader(parfile)
+    telegram_bot_send_message(
+        f"<pre><b>{socket.gethostname()}</b></pre>\n"
+        f"Starting!\n"
+        f"{pars['case_name']}"
+        f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     sbws, damage_polygons, dates = get_historical_cases_data(pars)
     events_by_date = get_events_by_date(pars, damage_polygons, sbws, dates)
     events_by_date = make_minimum_cases(dates, events_by_date, pars)

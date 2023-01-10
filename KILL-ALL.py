@@ -36,5 +36,5 @@ def KILL_SWITCH(f, k, set_val=None):
 
 
 if __name__ == '__main__':
-    kill_all_at(datetime.datetime(2022, 12, 30, 5, 00), "./kill-switch/kill-switch.json")
+    # kill_all_at(datetime.datetime(2022, 12, 30, 5, 00), "./kill-switch/kill-switch.json")
     kill_all("./kill-switch/kill-switch.json")

@@ -41,7 +41,7 @@ def generalizable_test_box(parfile, computer_name, k, sklim, *args):
                           tests_completed_file=tests_completed_file,
                           tests_completed_folder=tests_completed_folder,
                           skip_complex=False,
-                          skip_limit=sklim)
+                          skip_limit=False)
     except:
         traceback.print_exc()
         telegram_bot_send_message(
@@ -73,7 +73,7 @@ def cycle_generalizable_test_box(parfiles_folder, tests_completed_file, sklim):
 
 
 def cycle_generalizable_test_box_mp(parfiles_folder, tests_completed_file, sklim, max_workers=None):
-    parfiles = many_parfiles_reader(parfiles_folder)
+    parfiles = sorted(many_parfiles_reader(parfiles_folder))
     KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname())
     if not os.path.exists(tests_completed_file):
         dump_parfile(dict(), tests_completed_file)
@@ -105,8 +105,8 @@ def generalizable_test_box_wrapper(args):
 if __name__ == '__main__':
     KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name=socket.gethostname(), set_val=False)
     KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name="GLOBAL",set_val=False)
-    sklims = list(range(1000, 10001, 500))
-    sklims = sklims + [False]
+    # sklims = list(range(5000, 10001, 5000))
+    sklims = [False]
     for sklim in sklims:
         telegram_bot_send_message(
             f"<pre><b>{socket.gethostname()}</b></pre>\n"
@@ -116,6 +116,6 @@ if __name__ == '__main__':
             parfiles_folder="./pars/testing_folder_experiments_1/",
             tests_completed_file="./datafiles/tests_completed.json",
             sklim=sklim,
-            max_workers=0.99
+            max_workers=99
         )
         KILL_SWITCH(kill_file="./kill-switch/kill-switch.json", kill_name="GLOBAL")
