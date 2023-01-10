@@ -50,7 +50,7 @@ def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5)
         if k in names:
             print("#", end=" ")
         else:
-            print(" ", end="")
+            print(" ", end=" ")
         print(f"{v: >{len(str(max_tests))}} of {max_tests} : {k}")
     # incomplete_counter = sorted(incomplete_counter, reverse=True)[:top_n]
     # msg = ""
