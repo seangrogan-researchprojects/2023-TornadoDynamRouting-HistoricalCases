@@ -4,7 +4,7 @@ import socket
 from collections import Counter
 from time import sleep
 
-from pars.parfile_reader import many_parfiles_reader
+from pars.parfile_reader import many_parfiles_reader, parfile_reader
 from project_archangel import read_tests_completed_files
 from utilities.telegram_bot import telegram_bot_send_message
 
@@ -35,7 +35,8 @@ def tests_completed_counter_telegram_message(folder, parfiles_folder):
 
 def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5):
     data = read_tests_completed_files(folder)
-    # parfiles = many_parfiles_reader(parfiles_folder)
+    parfiles = many_parfiles_reader(parfiles_folder)
+    names = [parfile_reader(parfile)['case_name'] for parfile in parfiles]
     test_counter = sorted([(len(v), k) for k, v in data.items()])
     max_tests = max(len(k) for k in data.values())
     incomplete_counter = sorted([(len(v), k) for k, v in data.items() if len(v) < max_tests])
@@ -43,7 +44,11 @@ def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5)
     counter = Counter(v)
     for v, k in reversed(test_counter):
         if v >= max_tests:
-            print("*", end="")
+            print("*", end=" ")
+        else:
+            print(" ", end=" ")
+        if k in names:
+            print("#", end=" ")
         else:
             print(" ", end="")
         print(f"{v: >{len(str(max_tests))}} of {max_tests} : {k}")
