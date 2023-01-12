@@ -21,7 +21,7 @@ def tests_completed_counter_telegram_message(folder, parfiles_folder):
     parfiles = many_parfiles_reader(parfiles_folder)
     max_tests = max(len(k) for k in data.values())
     min_tests = min(len(k) for k in data.values())
-    mode_tests = mode(len(k) for k in data.values())
+    mode_tests = mode(len(k) for k in data.values() if len(k) < max_tests)
     completed_counter = [1 for k in data.values() if len(k) >= max_tests]
     close_completed_counter = [1 for k in data.values() if len(k) >= (mode_tests*0.995)]
     telegram_bot_send_message(
@@ -58,8 +58,11 @@ def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5,
         else:
             print(" ", end=" ")
         print(f"{v: >{len(str(max_tests))}} of {max_tests} : {k}")
+    mode_tests = mode(len(k) for k in data.values() if len(k) < max_tests)
+    close_completed_counter = [1 for k in data.values() if len(k) >= (mode_tests * 0.995)]
     if kounter > 0:
         print(f"  {kounter} par files have reached {max_tests}")
+        print(f"  {sum(close_completed_counter)} par files have reached {mode_tests}")
     # incomplete_counter = sorted(incomplete_counter, reverse=True)[:top_n]
     # msg = ""
     # for v, k in incomplete_counter:
