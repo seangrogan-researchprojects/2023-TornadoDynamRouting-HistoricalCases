@@ -2,6 +2,7 @@ import datetime
 import json
 import socket
 from collections import Counter
+from statistics import median, mode
 from time import sleep
 
 from pars.parfile_reader import many_parfiles_reader, parfile_reader
@@ -20,8 +21,9 @@ def tests_completed_counter_telegram_message(folder, parfiles_folder):
     parfiles = many_parfiles_reader(parfiles_folder)
     max_tests = max(len(k) for k in data.values())
     min_tests = min(len(k) for k in data.values())
+    mode_tests = mode(len(k) for k in data.values())
     completed_counter = [1 for k in data.values() if len(k) >= max_tests]
-    close_completed_counter = [1 for k in data.values() if len(k) >= (max_tests*.99)]
+    close_completed_counter = [1 for k in data.values() if len(k) >= (mode_tests*0.995)]
     telegram_bot_send_message(
         f"<pre><b>{socket.gethostname()}</b></pre>"
         f"\nTests Completed Data:\n<pre>"
@@ -42,8 +44,10 @@ def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5,
     incomplete_counter = sorted([(len(v), k) for k, v in data.items() if len(v) < max_tests])
     v, k = zip(*incomplete_counter)
     counter = Counter(v)
+    kounter = 0
     for v, k in reversed(test_counter):
         if skip_done and v>=max_tests:
+            kounter += 1
             continue
         if v >= max_tests:
             print("*", end=" ")
@@ -54,6 +58,8 @@ def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5,
         else:
             print(" ", end=" ")
         print(f"{v: >{len(str(max_tests))}} of {max_tests} : {k}")
+    if kounter > 0:
+        print(f"  {kounter} par files have reached {max_tests}")
     # incomplete_counter = sorted(incomplete_counter, reverse=True)[:top_n]
     # msg = ""
     # for v, k in incomplete_counter:
@@ -77,10 +83,14 @@ def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5,
 
 if __name__ == '__main__':
     folder = f"./datafiles/"
-    parfiles_folder = "./pars/testing_folder_experiments_1"
-    tests_completed_counter_telegram_message(f"./datafiles/", "./pars/testing_folder_experiments_1")
-    tests_completed_counter_telegram_message_2(folder, parfiles_folder)
-    for i in range(48):
-        sleep(60 * 60)
-        tests_completed_counter_telegram_message(f"./datafiles/", "./pars/testing_folder_experiments_1")
-        tests_completed_counter_telegram_message_2(folder, parfiles_folder)
+    parfiles_folder1 = "./pars/testing_folder_experiments_3"
+    parfiles_folder2 = "./pars/testing_folder_experiments_4"
+    tests_completed_counter_telegram_message(folder, parfiles_folder2)
+    tests_completed_counter_telegram_message_2(folder, parfiles_folder2)
+    for i in range((48*2)):
+        # sleep(60 * 10)
+        # tests_completed_counter_telegram_message(folder, parfiles_folder1)
+        # tests_completed_counter_telegram_message_2(folder, parfiles_folder1)
+        sleep(60 * 10)
+        tests_completed_counter_telegram_message(folder, parfiles_folder2)
+        tests_completed_counter_telegram_message_2(folder, parfiles_folder2)
