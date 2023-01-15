@@ -2,6 +2,7 @@ import csv
 import datetime
 import glob
 import os
+import random
 import time
 import socket
 from collections import defaultdict
@@ -14,6 +15,7 @@ from project_archangel_subfunctions import get_historical_cases_data, get_events
     make_pois_by_date, get_waypoints, limit_waypoints, create_waypoints_data_tables
 from route_nearest_insertion import route_nearest_insertion
 from utilities.kill_switch import KILL_SWITCH
+from utilities.plotter_utilities import plot_route_and_wp_scores
 from utilities.telegram_bot import telegram_bot_send_message
 from utilities.utilities import automkdir, datetime_string, euclidean
 
@@ -41,19 +43,19 @@ def project_archangel(parfile, log_file_path, tests_completed_folder,
                       tests_completed_file=None, skip_complex=True,
                       skip_limit=False):
     pars = parfile_reader(parfile)
-    telegram_bot_send_message(
-        f"<pre><b>{socket.gethostname()}</b></pre>\n"
-        f"Starting!\n"
-        f"{pars['case_name']}"
-        f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    # telegram_bot_send_message(
+    #     f"<pre><b>{socket.gethostname()}</b></pre>\n"
+    #     f"Starting!\n"
+    #     f"{pars['case_name']}\n"
+    #     f"At {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     sbws, damage_polygons, dates = get_historical_cases_data(pars)
     events_by_date = get_events_by_date(pars, damage_polygons, sbws, dates)
     events_by_date = make_minimum_cases(dates, events_by_date, pars)
     pois_by_date = make_pois_by_date(dates, sbws, pars)
 
-    # log_file_path = f"./logs/log_{socket.gethostname()}_{datetime_string()}.csv"
+    # log_file_path = f"./P_logs/log_{socket.gethostname()}_{datetime_string()}.csv"
     tests_completed = read_tests_completed_files(tests_completed_folder)
-
+    random.shuffle(list(dates))
     for date in dates:
         print(f"Working On {date}")
         for key, sub_event in events_by_date[date].items():
@@ -64,8 +66,9 @@ def project_archangel(parfile, log_file_path, tests_completed_folder,
             if len(damage) > 1 and skip_complex:
                 print(f"Skipping Event {date}:{key} because it's complex")
                 continue
-            waypoints = get_waypoints(pars, date,  pois_by_date[date])
-            waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event, plot=False, sub_event_id = key)
+            waypoints = get_waypoints(pars, date, pois_by_date[date])
+            waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event, plot=False,
+                                        sub_event_id=key)
             if bool(skip_limit) and len(waypoints) >= skip_limit:
                 print(f"Skipping Event {date}:{key} because it's bigger than {skip_limit}")
                 continue
@@ -92,7 +95,8 @@ def project_archangel(parfile, log_file_path, tests_completed_folder,
 def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
     sbws, damage = sub_event['sbws'], sub_event['damage']
     waypoints = get_waypoints(pars, date, poi)
-    waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event_id, sub_event_id=sub_event_id)
+    waypoints = limit_waypoints(sbws, damage, waypoints, pars, date=date, sub_case=sub_event_id,
+                                sub_event_id=sub_event_id)
     waypoint_data_table = create_waypoints_data_tables(pars, waypoints, sbws, damage, date, sub_event_id)
     # plot_stuff(damage, sbws, date, waypoints, sub_event_id, waypoint_data_table)
     route_as_visited, all_memory, n_missed_waypoints, dist_init = \
@@ -102,6 +106,17 @@ def dynamic_routing(pars, date, sub_event_id, sub_event, poi):
     minimum_hamiltonian_path, minimum_hamiltonian_path_distance = \
         route_nearest_insertion(waypoints_to_route, start_min_arc=False, unknot=True)
 
+    plot_route_and_wp_scores(
+        waypoint_data_table,
+        route_as_visited=route_as_visited,
+        route_to_visit=None,
+        show=False,
+        title=f"{date} | {sub_event_id}",
+        path=f"./plots/final_routes/{date}/{date}_{sub_event_id.replace(':', '-')}_{pars['case_name']}.png",
+        damage_poly=damage,
+        sbw=sbws,
+        bounds=None
+    )
     return route_as_visited, all_memory, n_missed_waypoints, dist_init, minimum_hamiltonian_path, minimum_hamiltonian_path_distance
 
 

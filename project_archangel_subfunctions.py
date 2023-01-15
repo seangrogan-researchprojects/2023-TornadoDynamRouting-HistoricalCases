@@ -278,7 +278,14 @@ def limit_waypoints(sbws, damage, waypoints, pars, plot=True, date=None, sub_cas
 
 
 def create_waypoints_data_tables(pars, waypoints, sbws, damage, date, sub_event_id):
-    pickle_file = f"{pars['pickle_base']}/waypoints_data_tables/{pars['waypoint_method']}_{pars['r_scan']}/{date}_{sub_event_id.replace(':', '-')}_{pars['waypoint_method']}_{pars['r_scan']}.pickle"
+    pickle_file = \
+        f"{pars['pickle_base']}/" \
+        f"waypoints_data_tables/" \
+        f"{pars['waypoint_method']}_{pars['r_scan']}/" \
+        f"{date}_{sub_event_id.replace(':', '-')}_{pars['waypoint_method']}_{pars['r_scan']}_" \
+        f"{pars['score_near_sbw']}_{pars['score_in_sbw']}_" \
+        f"{pars['score_damaged']}_{pars['near_sbw_scale']}_" \
+        f"{pars['max_influence']}.pickle"
     waypoint_data_table = read_pickle(pickle_file)
     if waypoint_data_table is None:
         if len(waypoints) < 1000:

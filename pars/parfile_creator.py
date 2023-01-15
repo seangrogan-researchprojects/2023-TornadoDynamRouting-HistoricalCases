@@ -26,23 +26,25 @@ def alldiff(elements):
 
 
 if __name__ == '__main__':
-    outfolder = f"testing_folder_experiments_1"
+    outfolder = f"testing_folder_experiments_5"
     alt_pars = {
         "min_score_to_consider": [0, 0.1, 0.2],
         "influence_matrix_type": ["symmetric", "data-driven", "symmetric-first", "data-driven-first"],
         "init_route": [True, False],
         "routing_mode": ["order_scores"],
-        "max_influence": [10000, 20000],
-        "r_scan": [1000],
-        "score_damaged": [10]
+        "max_influence": [10_000],
+        "r_scan": [1500, 2000, 1000],
+        "score_damaged": [10] #[10, 20]
     }
     data = []
     for par, values in alt_pars.items():
         for value in values:
             data.append((par, value))
     ParameterCombinations = [
-        elements for elements in itertools.combinations(data, len(alt_pars)) if alldiff(elements)
+        elements for elements in itertools.combinations(data, len(alt_pars))
+        if alldiff(elements)
     ]
+
     for pars in ParameterCombinations:
         name = ""
         for n, v in pars:
@@ -57,6 +59,8 @@ if __name__ == '__main__':
         name = name[:-1]
         pars_to_overwrite = dict(pars)
         pars_to_overwrite["case_name"] = name
+        if pars_to_overwrite["init_route"] in {True} and pars_to_overwrite["influence_matrix_type"] in {"symmetric-first", "data-driven-first"}:
+            continue
         parfile_creators(outfolder, f"pars-{name}.json", **pars_to_overwrite)
     parfile_creators(outfolder, f"pars_default.json")
     open_folder(outfolder)

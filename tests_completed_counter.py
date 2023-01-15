@@ -87,13 +87,19 @@ def tests_completed_counter_telegram_message_2(folder, parfiles_folder, top_n=5,
 if __name__ == '__main__':
     folder = f"./datafiles/"
     parfiles_folder1 = "./pars/testing_folder_experiments_3"
-    parfiles_folder2 = "./pars/testing_folder_experiments_4"
-    tests_completed_counter_telegram_message(folder, parfiles_folder2)
-    tests_completed_counter_telegram_message_2(folder, parfiles_folder2)
+    parfiles_folder2 = "./pars/testing_folder_experiments_5"
+    try:
+        tests_completed_counter_telegram_message(folder, parfiles_folder2)
+        tests_completed_counter_telegram_message_2(folder, parfiles_folder2)
+    except:
+        ...
     for i in range((48*2)):
         # sleep(60 * 10)
         # tests_completed_counter_telegram_message(folder, parfiles_folder1)
         # tests_completed_counter_telegram_message_2(folder, parfiles_folder1)
-        sleep(60 * 10)
-        tests_completed_counter_telegram_message(folder, parfiles_folder2)
-        tests_completed_counter_telegram_message_2(folder, parfiles_folder2)
+        sleep(60 * 30)
+        try:
+            tests_completed_counter_telegram_message(folder, parfiles_folder2)
+            tests_completed_counter_telegram_message_2(folder, parfiles_folder2)
+        except:
+            ...

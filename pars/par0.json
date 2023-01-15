@@ -18,7 +18,7 @@
   "routing_mode": "do-nothing",
   "max_influence": 10000,
   "min_influence": 0,
-  "init_route": false,
+  "init_route": true,
   "min_score_to_consider": 0.1,
   "short_memory_length": 15,
   "long_memory_length": 90,

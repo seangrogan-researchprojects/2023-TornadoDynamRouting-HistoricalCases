@@ -1,6 +1,7 @@
 import math
 import random
 import warnings
+from copy import deepcopy
 
 import pandas as pd
 from scipy.spatial.distance import squareform, pdist
@@ -41,7 +42,7 @@ def perform_dynamic_routing(waypoints_data, pars, event_date, event_id):
             pars["schematic_tornado_tracks"], pars["mag_limit"], pars["bin_width"], pars
         )
         matrix_type = "data-driven"
-    initial_waypoints_to_route = list(waypoints_data[waypoints_data['in_sbw'] == True].index)
+    initial_waypoints_to_route = list(waypoints_data[waypoints_data['in_sbw'] == True]._wp.to_list())
     if pars["init_route"]:
         pickle_file = f"{pars['pickle_base']}/init_routes/{event_date}_{event_id.replace(':', '-')}_{pars['r_scan']}_{pars['waypoint_method']}.pickle"
         _data = read_pickle(pickle_file)
@@ -55,6 +56,18 @@ def perform_dynamic_routing(waypoints_data, pars, event_date, event_id):
         dist_init = None
     p_bar = tqdm(desc=f"Running Dynamic Program {routing_mode}", total=len(tour))
 
+    plot_route_and_wp_scores(
+        waypoints_data,
+        route_as_visited=tour,
+        route_to_visit=None,
+        show=False,
+        title=f"{event_date} | {event_id}",
+        path=f"./plots/init_final_routes/{event_date}/{event_date}_{event_id.replace(':', '-')}_{pars['case_name']}.png",
+        damage_poly=None,
+        sbw=None,
+        bounds=None
+    )
+
     idx = 0
     route_as_visited = []
 
@@ -64,7 +77,26 @@ def perform_dynamic_routing(waypoints_data, pars, event_date, event_id):
     candidate_waypoints = list()
 
     influence_matrix_to_use = initial_influence_matrix_to_use(pars)
-
+    if routing_mode in {"do_nothing", "do-nothing"}:
+        route_as_visited = tour[:-2]
+        tour = tour[-2:]
+        for idx, t in enumerate(route_as_visited):
+            waypoints_data.at[t, "visited"] = True
+            all_memory.append(waypoints_data.loc[[t]].damaged.bool())
+    # elif pars['init_route']:
+    #     dmg_idx = None
+    #     waypoints_data_backup = deepcopy(waypoints_data)
+    #     for idx, t in enumerate(tour):
+    #         waypoints_data.at[t, "visited"] = True
+    #         if waypoints_data.loc[[t]].damaged.bool():
+    #             dmg_idx = idx
+    #             break
+    #     if dmg_idx is not None:
+    #         route_as_visited = tour[:dmg_idx]
+    #         tour = tour[dmg_idx:]
+    #     else:
+    #         waypoints_data = deepcopy(waypoints_data_backup)
+    #         idx = 0
     while len(tour) > 0:
         if idx >= len(waypoints_data) - 1:
             break
@@ -94,9 +126,9 @@ def perform_dynamic_routing(waypoints_data, pars, event_date, event_id):
             all_memory.append(False)
         if pars['plots'] in {'all'} or any(short_memory) or len(tour) <= 0:
             waypoints_data = update_scores(waypoints_data,
-                                       influence_matrix[influence_matrix_to_use],
-                                       dist_matrix,
-                                       pars["max_influence"], update_group_score=False)
+                                           influence_matrix[influence_matrix_to_use],
+                                           dist_matrix,
+                                           pars["max_influence"], update_group_score=False)
         while len(short_memory) > pars["short_memory_length"]:
             short_memory.pop(0)
         while len(long_memory) > pars["long_memory_length"]:
@@ -109,19 +141,22 @@ def perform_dynamic_routing(waypoints_data, pars, event_date, event_id):
             tour = update_route_function(tour, candidate_waypoints,
                                          waypoints_data, dist_matrix, route_as_visited, pars,
                                          mode=routing_mode)
-            if routing_mode != "do_nothing" and len(tour) > 0:
+            if routing_mode not in {"do_nothing", "do-nothing"} and len(tour) > 0:
                 waypoints_along_route = get_candidate_waypoints_for_long_arcs(
                     route_as_visited, tour, candidate_waypoints, dist_matrix, pars["max_influence"]
                 )
                 tour = update_route_function(tour, waypoints_along_route,
-                                             waypoints_data, dist_matrix, route_as_visited, pars,
+                                             waypoints_data, dist_matrix,
+                                             route_as_visited, pars,
                                              influence_matrix=influence_matrix,
                                              mode="nearest_insertion",
                                              last_wp=route_as_visited[-1])
                 tour = tour[1:]
-            if pars["init_route"] and not any(long_memory) and len(candidate_waypoints) > len(tour):
+            if routing_mode not in {"do_nothing", "do-nothing"} and pars["init_route"] and not any(long_memory) and len(
+                    candidate_waypoints) > len(tour):
                 tour = update_route_function(tour, candidate_waypoints,
-                                             waypoints_data, dist_matrix, route_as_visited, pars,
+                                             waypoints_data, dist_matrix,
+                                             route_as_visited, pars,
                                              influence_matrix=influence_matrix,
                                              mode="nearest_insertion",
                                              last_wp=route_as_visited[-1])
@@ -181,7 +216,7 @@ def update_route_function(init_tour, candidate_waypoints,
 
 
 def update_scores(waypoints_data, influence_matrix, distance_matrix,
-                  influence_range, update_group_score=True):
+                  influence_range, update_group_score=True, legacy=False):
     def __update_waypoint_score(_row, _waypoints_data, _influence_matrix):
         if _row.visited and _row.damaged:
             return 1
@@ -191,7 +226,8 @@ def update_scores(waypoints_data, influence_matrix, distance_matrix,
         score = _influence_matrix[wp].multiply(_waypoints_data['base_score']).sum() / _influence_matrix[wp].sum()
         return min(max(score, 0), 1)
 
-    def __update_waypoint_group_score(_row, _waypoints_data, _distance_matrix, _influence_range):
+    def __update_waypoint_group_score(_row, _waypoints_data,
+                                      _distance_matrix, _influence_range):
         if _row.visited and _row.damaged:
             return 1
         if _row.visited and not _row.damaged:
@@ -201,10 +237,18 @@ def update_scores(waypoints_data, influence_matrix, distance_matrix,
         score = _waypoints_data.loc[nearby_wpts]['score'].mean()
         return min(max(score, 0), 1)
 
-    waypoints_data['score'] = waypoints_data.apply(
-        lambda row: __update_waypoint_score(row, waypoints_data, influence_matrix),
-        axis=1
-    )
+    if legacy:
+        waypoints_data['score'] = waypoints_data.apply(
+            lambda row: __update_waypoint_score(row, waypoints_data, influence_matrix),
+            axis=1
+        )
+    else:
+        waypoints_data['score'] = waypoints_data['visited'] * waypoints_data['damaged'].astype(int)
+        mask = (waypoints_data['visited'] == False)
+        waypoints_data.loc[mask, 'score'] = waypoints_data.loc[mask].apply(
+            lambda row: __update_waypoint_score(row, waypoints_data, influence_matrix),
+            axis=1
+        )
     if update_group_score:
         waypoints_data['group_score'] = waypoints_data.apply(
             lambda row: __update_waypoint_group_score(row, waypoints_data, distance_matrix, influence_range),
@@ -213,8 +257,12 @@ def update_scores(waypoints_data, influence_matrix, distance_matrix,
     return waypoints_data
 
 
-def get_init_dynamic_tour(pars, waypoints_data, dist_matrix, influence_matrix, waypoints):
-    target = (0, 0)
+def get_init_dynamic_tour(pars, waypoints_data, dist_matrix,
+                          influence_matrix, waypoints, target=None):
+    if target is None:
+        __wpts = waypoints_data._wp.to_list()
+        x, y = zip(*__wpts)
+        target = (min(x), min(y))
     closest_to_target = {wp: euclidean(wp, (target[0], target[1])) for wp in waypoints}
     target = min(closest_to_target, key=closest_to_target.get)
     candidate_waypoints, _mstc = list(), pars["min_score_to_consider"]
